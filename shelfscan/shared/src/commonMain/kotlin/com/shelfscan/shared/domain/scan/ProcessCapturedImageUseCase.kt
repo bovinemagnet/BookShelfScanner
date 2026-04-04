@@ -89,4 +89,3 @@ class ProcessCapturedImageUseCase(
         return session
     }
 }
-

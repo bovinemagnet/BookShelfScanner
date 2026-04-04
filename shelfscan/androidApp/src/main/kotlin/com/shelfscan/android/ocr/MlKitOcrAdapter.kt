@@ -57,4 +57,3 @@ class MlKitOcrAdapter(private val context: Context) : OcrEngine {
                 }
         }
 }
-
