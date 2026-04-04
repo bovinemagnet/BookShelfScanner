@@ -12,7 +12,8 @@ class ProcessCapturedImageUseCase(
     private val metadataLookupService: MetadataLookupService,
     private val scanRepository: ScanRepository,
     private val parseItem: ParseDetectedItemUseCase = ParseDetectedItemUseCase(),
-    private val scoreConfidence: ScoreConfidenceUseCase = ScoreConfidenceUseCase()
+    private val scoreConfidence: ScoreConfidenceUseCase = ScoreConfidenceUseCase(),
+    private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
     suspend fun execute(image: CapturedImage, sessionId: String): ScanSession {
         val processed = imagePreprocessor.normalizeForOcr(image)
@@ -72,7 +73,7 @@ class ProcessCapturedImageUseCase(
 
         val session = ScanSession(
             id = sessionId,
-            createdAt = currentTimeMillis(),
+            createdAt = clock(),
             sourceImageRef = image.ref,
             quality = ImageQualityAssessment(
                 blurScore = 1.0,
@@ -87,7 +88,5 @@ class ProcessCapturedImageUseCase(
         scanRepository.saveSession(session)
         return session
     }
-
-    // Platform-agnostic time - use epoch millis
-    private fun currentTimeMillis(): Long = 0L // Will be overridden in platform code
 }
+

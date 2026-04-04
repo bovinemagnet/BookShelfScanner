@@ -1,6 +1,7 @@
 package com.shelfscan.android.camera
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -11,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.shelfscan.shared.core.model.CapturedImage
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -45,22 +47,27 @@ class CameraXAdapter(private val context: Context) {
             continuation.resumeWithException(IllegalStateException("Camera not started"))
             return@suspendCancellableCoroutine
         }
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(
-            java.io.File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
-        ).build()
+        val outputFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
         capture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val ref = outputFileResults.savedUri?.toString()
-                        ?: "capture_${System.currentTimeMillis()}"
-                    continuation.resume(CapturedImage(ref = ref, widthPx = 0, heightPx = 0))
+                    val ref = outputFileResults.savedUri?.toString() ?: outputFile.toURI().toString()
+                    val (width, height) = readImageDimensions(outputFile)
+                    continuation.resume(CapturedImage(ref = ref, widthPx = width, heightPx = height))
                 }
                 override fun onError(exception: ImageCaptureException) {
                     continuation.resumeWithException(exception)
                 }
             }
         )
+    }
+
+    private fun readImageDimensions(file: File): Pair<Int, Int> {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, options)
+        return Pair(options.outWidth, options.outHeight)
     }
 }

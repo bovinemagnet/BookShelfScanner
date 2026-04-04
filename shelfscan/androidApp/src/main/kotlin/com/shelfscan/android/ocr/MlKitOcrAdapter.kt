@@ -1,5 +1,7 @@
 package com.shelfscan.android.ocr
 
+import android.content.Context
+import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -13,7 +15,7 @@ import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class MlKitOcrAdapter : OcrEngine {
+class MlKitOcrAdapter(private val context: Context) : OcrEngine {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     override suspend fun recognizeText(image: ProcessedImage): OcrResult =
@@ -23,10 +25,12 @@ class MlKitOcrAdapter : OcrEngine {
                 continuation.resume(OcrResult(blocks = emptyList(), rawText = ""))
                 return@suspendCancellableCoroutine
             }
-            val inputImage = InputImage.fromFilePath(
-                file.parentFile!!.let { throw IllegalStateException("Use context-aware factory") },
-                android.net.Uri.fromFile(file)
-            )
+            val inputImage = try {
+                InputImage.fromFilePath(context, Uri.fromFile(file))
+            } catch (e: Exception) {
+                continuation.resumeWithException(e)
+                return@suspendCancellableCoroutine
+            }
             recognizer.process(inputImage)
                 .addOnSuccessListener { result ->
                     val blocks = result.textBlocks.flatMap { block ->
@@ -53,3 +57,4 @@ class MlKitOcrAdapter : OcrEngine {
                 }
         }
 }
+

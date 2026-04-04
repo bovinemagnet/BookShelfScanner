@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,31 +14,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+
+class MainViewModel : ViewModel() {
+    var cameraPermissionGranted by mutableStateOf(false)
+}
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
+
     private val requestPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        cameraPermissionGranted = granted
+        viewModel.cameraPermissionGranted = granted
     }
-
-    private var cameraPermissionGranted by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        cameraPermissionGranted = ContextCompat.checkSelfPermission(
+        viewModel.cameraPermissionGranted = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!cameraPermissionGranted) {
+        if (!viewModel.cameraPermissionGranted) {
             requestPermission.launch(Manifest.permission.CAMERA)
         }
 
         setContent {
             MaterialTheme {
                 ShelfScanApp(
-                    cameraPermissionGranted = cameraPermissionGranted,
+                    cameraPermissionGranted = viewModel.cameraPermissionGranted,
                     onRequestPermission = { requestPermission.launch(Manifest.permission.CAMERA) }
                 )
             }
