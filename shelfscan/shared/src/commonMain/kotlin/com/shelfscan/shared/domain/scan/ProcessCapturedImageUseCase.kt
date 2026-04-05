@@ -13,7 +13,7 @@ class ProcessCapturedImageUseCase(
     private val scanRepository: ScanRepository,
     private val parseItem: ParseDetectedItemUseCase = ParseDetectedItemUseCase(),
     private val scoreConfidence: ScoreConfidenceUseCase = ScoreConfidenceUseCase(),
-    private val clock: () -> Long = { System.currentTimeMillis() }
+    private val clock: () -> Long = { 0L }
 ) {
     suspend fun execute(image: CapturedImage, sessionId: String): ScanSession {
         val processed = imagePreprocessor.normalizeForOcr(image)
