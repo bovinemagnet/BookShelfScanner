@@ -54,7 +54,7 @@ class CameraXAdapter(private val context: Context) {
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val ref = outputFileResults.savedUri?.toString() ?: outputFile.toURI().toString()
+                    val ref = outputFile.absolutePath
                     val (width, height) = readImageDimensions(outputFile)
                     continuation.resume(CapturedImage(ref = ref, widthPx = width, heightPx = height))
                 }
