@@ -26,6 +26,10 @@ cd shelfscan && gradle21w :androidApp:assembleDebug
 
 A Gradle wrapper is included in `shelfscan/` but prefer `gradle21w` (on PATH) for consistency.
 
+## CI/CD
+
+GitHub Actions workflow (`.github/workflows/android-release.yml`) builds a debug APK on every push to `main` and a signed release APK on GitHub Release events. CI uses `./gradlew` directly (not `gradle21w`). Signing requires repository secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
+
 ## Architecture
 
 **Kotlin Multiplatform** with shared business logic across Android and iOS. Unidirectional data flow (Action → ViewModel → StateFlow → UI).
@@ -34,14 +38,16 @@ A Gradle wrapper is included in `shelfscan/` but prefer `gradle21w` (on PATH) fo
 
 - `shelfscan/shared/` — KMP shared module (JVM + iOS targets, Kotlin 2.3.20)
 - `shelfscan/androidApp/` — Android app (Compose, CameraX, ML Kit OCR)
-- `shelfscan/iosApp/` — iOS app (SwiftUI, AVFoundation, Apple Vision OCR)
+- `shelfscan/iosApp/` — iOS app (SwiftUI, AVFoundation, Apple Vision OCR) — not yet in `settings.gradle.kts`
+
+Only `:shared` and `:androidApp` are currently included in the Gradle build.
 
 ### Shared code layers (under `com.shelfscan.shared`)
 
 | Layer | Package | Purpose |
 |---|---|---|
 | Core models | `core.model` | Pure domain objects: `MediaItem`, `ScanSession`, `Collection`, `ConfidenceScore`, `DetectedSpine`, `OcrResult` |
-| Core result | `core.result` | Result wrapper |
+| Core result | `core.result` | `AppResult<T>` sealed class (Success/Failure) with `onSuccess`/`onFailure` extensions |
 | Domain use cases | `domain.scan` | `ProcessCapturedImageUseCase` (orchestrates the full pipeline), `ParseDetectedItemUseCase`, `ScoreConfidenceUseCase` |
 | Domain export | `domain.export` | `ExportCollectionUseCase` (CSV/JSON) |
 | Data repositories | `data.repository` | `ScanRepository`, `CollectionRepository` interfaces + default implementations |
@@ -60,6 +66,7 @@ The pipeline is orchestrated by `ProcessCapturedImageUseCase`, which calls platf
 Platform-specific capabilities are defined as interfaces in `shared/platform/` and implemented natively:
 - **Android:** `CameraXAdapter`, `MlKitOcrAdapter` (in `androidApp/`)
 - **iOS:** `AVFoundationCameraAdapter`, `VisionOcrAdapter` (in `iosApp/`)
+- **Test/stub:** `PassthroughImagePreprocessor`, `NoOpMetadataLookupService` (in `shared/platform/`) — used for testing and as defaults before platform implementations are wired up
 
 ### Confidence scoring formula
 
@@ -75,6 +82,10 @@ Bands: HIGH (≥0.75), MEDIUM (≥0.50), LOW (≥0.25), NEEDS_REVIEW (<0.25).
 - Android: CameraX 1.6.0, ML Kit Text Recognition 16.0.1, Compose BOM 2025.03.00
 - iOS: AVFoundation, Apple Vision (native frameworks)
 - Networking: Ktor 3.1.3
+
+## Project Phase
+
+Currently in **Phase 1: Books-only MVP** (Android first). See `docs/prd.md` for full product requirements and `docs/architecture.md` for architectural decisions and rationale.
 
 ## Conventions
 

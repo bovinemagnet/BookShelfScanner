@@ -34,7 +34,7 @@ import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
 import com.shelfscan.shared.platform.NoOpMetadataLookupService
-import com.shelfscan.shared.platform.PassthroughImagePreprocessor
+import com.shelfscan.android.image.OcrBasedSpineDetector
 import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         cameraAdapter = CameraXAdapter(this)
 
         val processImageUseCase = ProcessCapturedImageUseCase(
-            imagePreprocessor = PassthroughImagePreprocessor(),
+            imagePreprocessor = OcrBasedSpineDetector(this),
             ocrEngine = MlKitOcrAdapter(this),
             metadataLookupService = NoOpMetadataLookupService(),
             scanRepository = DefaultScanRepository()
