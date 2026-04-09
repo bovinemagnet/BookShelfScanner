@@ -35,6 +35,7 @@ import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
 import com.shelfscan.shared.platform.NoOpMetadataLookupService
 import com.shelfscan.android.image.OcrBasedSpineDetector
+import com.shelfscan.android.ui.ReviewScreen
 import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
@@ -236,101 +237,6 @@ fun ScanScreen(
                         .padding(24.dp)
                 ) {
                     Text("Capture")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ReviewScreen(
-    reviewViewModel: ReviewViewModel,
-    reviewState: ReviewState,
-    onDone: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Text("Review Results", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (reviewState.items.isEmpty()) {
-            Text("No items detected. Try scanning again.")
-        } else {
-            Text(
-                "${reviewState.items.size} item(s) detected",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(reviewState.items) { item ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = item.title ?: "Unknown Title",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            item.creatorName?.let {
-                                Text(text = it, style = MaterialTheme.typography.bodyMedium)
-                            }
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(item.confidence.band.name) }
-                            )
-                            if (item.rawText.isNotEmpty()) {
-                                Text(
-                                    text = "Raw: ${item.rawText.joinToString(" | ")}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (reviewState.savedToCollection) {
-            Text("Saved!", style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to Home")
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        reviewViewModel.onAction(
-                            ReviewAction.SaveToCollection(
-                                collectionId = "default",
-                                collectionName = "My Books"
-                            )
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Save to Collection")
-                }
-                OutlinedButton(
-                    onClick = {
-                        reviewViewModel.onAction(ReviewAction.DiscardAll)
-                        onDone()
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Discard")
                 }
             }
         }

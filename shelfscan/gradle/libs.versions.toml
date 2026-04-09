@@ -8,6 +8,9 @@ kotlinxCoroutines = "1.10.2"
 cameraX = "1.6.0"
 mlkitTextRecognition = "16.0.1"
 junit = "4.13.2"
+androidxTestRunner = "1.6.2"
+androidxTestRules = "1.6.1"
+androidxTestExtJunit = "1.2.1"
 activityCompose = "1.13.0"
 appcompat = "1.7.1"
 
@@ -50,4 +53,8 @@ appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat"
 # Test
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+androidx-test-rules = { module = "androidx.test:rules", version.ref = "androidxTestRules" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
