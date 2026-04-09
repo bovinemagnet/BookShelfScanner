@@ -61,6 +61,43 @@ gradle :shared:jvmTest
 gradle :shared:jvmTest --tests "com.shelfscan.shared.domain.ParseDetectedItemUseCaseTest"
 ```
 
+## Running Android Instrumented Tests
+
+Instrumented tests (e.g. OCR, spine detection) require a running Android emulator or connected device.
+
+### Setting up an emulator
+
+```bash
+# Install a system image
+$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-34;google_apis;x86_64"
+
+# Create an AVD
+$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n Pixel_API_34 \
+  -k "system-images;android-34;google_apis;x86_64" -d pixel_6
+
+# Start the emulator
+$ANDROID_HOME/emulator/emulator -avd Pixel_API_34 &
+
+# Wait for the device to finish booting
+adb wait-for-device
+```
+
+### Running the tests
+
+```bash
+cd shelfscan
+
+# Run all instrumented tests
+gradle :androidApp:connectedAndroidTest
+
+# Check connected devices
+adb devices
+```
+
+### Test bookshelf image
+
+Place a real bookshelf photo at `androidApp/src/androidTest/assets/test_bookshelf.jpg` for meaningful OCR test results.
+
 ## Project Structure
 
 ```

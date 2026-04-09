@@ -22,7 +22,7 @@ class OcrBasedSpineDetectorTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         detector = OcrBasedSpineDetector(context)
         imageLoader = TestImageLoader()
-        testImagePath = imageLoader.loadAsset("test_bookshelf.png")
+        testImagePath = imageLoader.loadAsset("test_bookshelf.jpg")
     }
 
     @After
@@ -32,7 +32,7 @@ class OcrBasedSpineDetectorTest {
 
     @Test
     fun detectShelfItemsFromBundledImageReturnsSpines() = runBlocking {
-        val image = CapturedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val spines = detector.detectShelfItems(image)
 
         // Should return at least one spine (either detected or whole-image fallback)
@@ -41,7 +41,7 @@ class OcrBasedSpineDetectorTest {
 
     @Test
     fun detectedSpinesHaveValidBoundingBoxes() = runBlocking {
-        val image = CapturedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val spines = detector.detectShelfItems(image)
 
         spines.forEach { spine ->
@@ -55,7 +55,7 @@ class OcrBasedSpineDetectorTest {
 
     @Test
     fun detectedSpinesHavePositiveConfidence() = runBlocking {
-        val image = CapturedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val spines = detector.detectShelfItems(image)
 
         spines.forEach { spine ->
@@ -65,7 +65,7 @@ class OcrBasedSpineDetectorTest {
 
     @Test
     fun detectedSpineCropRefsPointToExistingFiles() = runBlocking {
-        val image = CapturedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val spines = detector.detectShelfItems(image)
 
         spines.forEach { spine ->
@@ -78,12 +78,12 @@ class OcrBasedSpineDetectorTest {
 
     @Test
     fun normalizeForOcrPassesThroughImageData() = runBlocking {
-        val image = CapturedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val processed = detector.normalizeForOcr(image)
 
         assertEquals(testImagePath, processed.ref)
-        assertEquals(1280, processed.widthPx)
-        assertEquals(960, processed.heightPx)
+        assertEquals(4000, processed.widthPx)
+        assertEquals(3000, processed.heightPx)
     }
 
     @Test

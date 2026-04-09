@@ -21,7 +21,7 @@ class MlKitOcrAdapterTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         adapter = MlKitOcrAdapter(context)
         imageLoader = TestImageLoader()
-        testImagePath = imageLoader.loadAsset("test_bookshelf.png")
+        testImagePath = imageLoader.loadAsset("test_bookshelf.jpg")
     }
 
     @After
@@ -31,19 +31,16 @@ class MlKitOcrAdapterTest {
 
     @Test
     fun recogniseTextFromBundledImageDoesNotCrash() = runBlocking {
-        val image = ProcessedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = ProcessedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val result = adapter.recognizeText(image)
 
-        // The synthetic test image may not contain readable text,
-        // so we only verify the call succeeds and returns a valid structure.
-        // Replace test_bookshelf.png with a real bookshelf photo for
-        // meaningful OCR assertions.
-        assertTrue(result.blocks.size >= 0)
+        assertTrue(result.blocks.isNotEmpty(), "Expected OCR to detect text blocks from bookshelf image")
+
     }
 
     @Test
     fun blocksHaveValidConfidenceValues() = runBlocking {
-        val image = ProcessedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = ProcessedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val result = adapter.recognizeText(image)
 
         result.blocks.forEach { block ->
@@ -56,7 +53,7 @@ class MlKitOcrAdapterTest {
 
     @Test
     fun blocksWithBoundingBoxesHaveValidDimensions() = runBlocking {
-        val image = ProcessedImage(ref = testImagePath, widthPx = 1280, heightPx = 960)
+        val image = ProcessedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
         val result = adapter.recognizeText(image)
 
         val boxedBlocks = result.blocks.filter { it.boundingBox != null }

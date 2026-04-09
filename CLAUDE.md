@@ -26,6 +26,26 @@ cd shelfscan && gradle21w :androidApp:assembleDebug
 
 A Gradle wrapper is included in `shelfscan/` but prefer `gradle21w` (on PATH) for consistency.
 
+## Android Instrumented Tests
+
+Instrumented tests (OCR, spine detection) require a running Android emulator or connected device.
+
+```bash
+# Set up emulator (one-time)
+$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-34;google_apis;x86_64"
+$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n Pixel_API_34 \
+  -k "system-images;android-34;google_apis;x86_64" -d pixel_6
+
+# Start emulator
+$ANDROID_HOME/emulator/emulator -avd Pixel_API_34 &
+adb wait-for-device
+
+# Run instrumented tests
+cd shelfscan && gradle21w :androidApp:connectedAndroidTest
+```
+
+Test bookshelf image: `androidApp/src/androidTest/assets/test_bookshelf.jpg` (4000×3000 JPG).
+
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/android-release.yml`) builds a debug APK on every push to `main` and a signed release APK on GitHub Release events. CI uses `./gradlew` directly (not `gradle21w`). Signing requires repository secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
