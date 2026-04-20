@@ -81,6 +81,11 @@ dependencies {
     // ML Kit
     implementation(libs.mlkit.text.recognition)
 
+    // Ktor (OkHttp engine + JSON) for Open Library metadata lookup
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import com.shelfscan.android.camera.CameraXAdapter
 import com.shelfscan.android.ocr.MlKitOcrAdapter
 import com.shelfscan.shared.core.model.ScanStatus
+import com.shelfscan.shared.data.metadata.OpenLibraryMetadataLookupService
 import com.shelfscan.shared.data.repository.DefaultCollectionRepository
 import com.shelfscan.shared.data.repository.DefaultScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
@@ -33,10 +34,14 @@ import com.shelfscan.shared.feature.review.ReviewViewModel
 import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
-import com.shelfscan.shared.platform.NoOpMetadataLookupService
 import com.shelfscan.android.image.OcrBasedSpineDetector
 import com.shelfscan.android.ui.ReviewScreen
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 class MainViewModel : ViewModel() {
     var cameraPermissionGranted by mutableStateOf(false)
@@ -48,6 +53,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var cameraAdapter: CameraXAdapter
     private lateinit var scanViewModel: ScanViewModel
     private lateinit var reviewViewModel: ReviewViewModel
+    private lateinit var httpClient: HttpClient
 
     private val requestPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -60,10 +66,16 @@ class MainActivity : ComponentActivity() {
 
         cameraAdapter = CameraXAdapter(this)
 
+        httpClient = HttpClient(OkHttp) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
         val processImageUseCase = ProcessCapturedImageUseCase(
             imagePreprocessor = OcrBasedSpineDetector(this),
             ocrEngine = MlKitOcrAdapter(this),
-            metadataLookupService = NoOpMetadataLookupService(),
+            metadataLookupService = OpenLibraryMetadataLookupService(httpClient),
             scanRepository = DefaultScanRepository()
         )
 
@@ -96,6 +108,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        if (::httpClient.isInitialized) httpClient.close()
+        super.onDestroy()
     }
 }
 
