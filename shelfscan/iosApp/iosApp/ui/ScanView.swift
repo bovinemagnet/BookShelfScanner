@@ -1,11 +1,12 @@
+// shelfscan/iosApp/iosApp/ui/ScanView.swift
 import SwiftUI
 import AVFoundation
+import ShelfScanShared
 
 struct ScanView: View {
-    let onScanComplete: () -> Void
+    let onScanComplete: (ScanSession) -> Void
 
     @StateObject private var viewModel = ScanViewModel()
-    @State private var showPermissionAlert = false
 
     var body: some View {
         ZStack {
@@ -20,7 +21,9 @@ struct ScanView: View {
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                     } else {
                         Button(action: {
-                            viewModel.captureAndProcess { onScanComplete() }
+                            viewModel.captureAndProcess { session in
+                                onScanComplete(session)
+                            }
                         }) {
                             Image(systemName: "camera.circle.fill")
                                 .font(.system(size: 72))
@@ -45,9 +48,6 @@ struct ScanView: View {
             }
         }
         .onAppear { viewModel.requestCameraAccess() }
-        .alert("Camera Unavailable", isPresented: $showPermissionAlert) {
-            Button("OK", role: .cancel) {}
-        }
     }
 }
 
@@ -58,7 +58,14 @@ final class ScanViewModel: ObservableObject {
 
     let captureSession = AVCaptureSession()
     private let cameraAdapter = AVFoundationCameraAdapter()
-    private let ocrAdapter = VisionOcrAdapter()
+
+    private let processUseCase: ProcessCapturedImageUseCase = IosShelfScanFactory.shared
+        .createProcessCapturedImageUseCase(
+            ocrCallback: SwiftIosOcrCallback(),
+            preprocessorCallback: SwiftIosImagePreprocessorCallback(),
+            metadataService: nil,
+            scanRepository: nil
+        )
 
     func requestCameraAccess() {
         Task {
@@ -82,20 +89,24 @@ final class ScanViewModel: ObservableObject {
         captureSession.startRunning()
     }
 
-    func captureAndProcess(completion: @escaping () -> Void) {
+    func captureAndProcess(completion: @escaping (ScanSession) -> Void) {
         isProcessing = true
         Task {
             do {
                 let imageURL = try await cameraAdapter.capturePhoto()
-                let ocrResult = try await ocrAdapter.recognizeText(imageURL: imageURL)
-                // In a full implementation, pass ocrResult to the shared KMP domain layer
-                _ = ocrResult
+                let captured = CapturedImage(
+                    ref: imageURL.path,
+                    widthPx: 0,   // exact dimensions populated by a future enhancement
+                    heightPx: 0
+                )
+                let sessionId = "session_\(Int(Date().timeIntervalSince1970 * 1000))"
+                let session = try await processUseCase.execute(image: captured, sessionId: sessionId)
                 await MainActor.run {
-                    isProcessing = false
-                    completion()
+                    self.isProcessing = false
+                    completion(session)
                 }
             } catch {
-                await MainActor.run { isProcessing = false }
+                await MainActor.run { self.isProcessing = false }
             }
         }
     }
