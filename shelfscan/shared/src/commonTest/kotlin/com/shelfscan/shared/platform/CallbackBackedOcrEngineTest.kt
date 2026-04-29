@@ -96,4 +96,33 @@ class CallbackBackedOcrEngineTest {
         assertEquals(110f, box?.right)
         assertEquals(60f, box?.bottom)
     }
+
+    @Test
+    fun `tolerates a late onError after onSuccess has already fired`() = runBlocking {
+        val engine = CallbackBackedOcrEngine(
+            recognize = { _, onSuccess, onError ->
+                onSuccess("first", emptyList())
+                onError("late error")
+            }
+        )
+
+        val result = engine.recognizeText(sampleImage)
+
+        assertEquals("first", result.rawText)
+        assertEquals(0, result.blocks.size)
+    }
+
+    @Test
+    fun `tolerates a duplicate onSuccess fire`() = runBlocking {
+        val engine = CallbackBackedOcrEngine(
+            recognize = { _, onSuccess, _ ->
+                onSuccess("first", emptyList())
+                onSuccess("second", emptyList())
+            }
+        )
+
+        val result = engine.recognizeText(sampleImage)
+
+        assertEquals("first", result.rawText)
+    }
 }

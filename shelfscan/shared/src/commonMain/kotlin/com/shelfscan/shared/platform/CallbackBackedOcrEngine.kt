@@ -14,6 +14,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * Lives in `commonMain` so it is JVM-testable. The `iosMain` `SwiftBackedOcrEngine` adapts a
  * Swift-implemented `IosOcrCallback` into the `recognize` function reference this class
  * accepts.
+ *
+ * @param recognize callback that performs OCR and reports results. The contract is
+ *   "fire exactly one of `onSuccess` or `onError`, ideally once" — but duplicate or
+ *   late callbacks are tolerated and silently dropped, since some real callback APIs
+ *   (Apple Vision) can fire more than once across cancellation paths.
  */
 class CallbackBackedOcrEngine(
     private val recognize: (
@@ -28,24 +33,28 @@ class CallbackBackedOcrEngine(
             recognize(
                 image.ref,
                 { rawText, lines ->
-                    val blocks = lines.map { line ->
-                        RecognizedTextBlock(
-                            text = line.text,
-                            confidence = line.confidence,
-                            boundingBox = if (line.hasBoundingBox) {
-                                BoundingBox(
-                                    left = line.boundingBoxLeft,
-                                    top = line.boundingBoxTop,
-                                    right = line.boundingBoxRight,
-                                    bottom = line.boundingBoxBottom,
-                                )
-                            } else null,
-                        )
+                    if (cont.isActive) {
+                        val blocks = lines.map { line ->
+                            RecognizedTextBlock(
+                                text = line.text,
+                                confidence = line.confidence,
+                                boundingBox = if (line.hasBoundingBox) {
+                                    BoundingBox(
+                                        left = line.boundingBoxLeft,
+                                        top = line.boundingBoxTop,
+                                        right = line.boundingBoxRight,
+                                        bottom = line.boundingBoxBottom,
+                                    )
+                                } else null,
+                            )
+                        }
+                        cont.resume(OcrResult(blocks = blocks, rawText = rawText))
                     }
-                    cont.resume(OcrResult(blocks = blocks, rawText = rawText))
                 },
                 { message ->
-                    cont.resumeWithException(CallbackOcrException(message))
+                    if (cont.isActive) {
+                        cont.resumeWithException(CallbackOcrException(message))
+                    }
                 },
             )
         }
