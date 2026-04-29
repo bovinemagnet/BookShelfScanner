@@ -66,7 +66,9 @@ class CallbackBackedImagePreprocessorTest {
         assertEquals("spine_0", spines[0].id)
         assertEquals("/tmp/spine_0.jpg", spines[0].cropRef)
         assertEquals(0f, spines[0].boundingBox.left)
+        assertEquals(0f, spines[0].boundingBox.top)
         assertEquals(50f, spines[0].boundingBox.right)
+        assertEquals(200f, spines[0].boundingBox.bottom)
         assertEquals(0.7, spines[0].confidence)
     }
 
