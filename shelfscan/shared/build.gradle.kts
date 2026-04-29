@@ -45,6 +45,9 @@ kotlin {
                 implementation(libs.kotlin.test.junit)
             }
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
     }
 }
 

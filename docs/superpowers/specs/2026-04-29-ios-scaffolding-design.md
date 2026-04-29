@@ -185,7 +185,7 @@ signature during implementation.
    to `IosImagePreprocessorCallback.detectShelfItems` (Swift).
 5. Same for OCR via `SwiftBackedOcrEngine` → `IosOcrCallback` →
    `VisionOcrAdapter.recognizeText` (Swift).
-6. Shared `OpenLibraryMetadataLookupService` runs directly on Kotlin/Native via Ktor.
+6. Shared `OpenLibraryMetadataLookupService` runs directly on Kotlin/Native via Ktor. iOS pulls in `ktor-client-darwin` as the HTTP engine on the `iosMain` source set; without it Ktor fails at runtime with no engine on the classpath.
 7. Result returned to Swift; `ReviewView` receives `[MediaItem]`.
 
 ## Swift-side changes
