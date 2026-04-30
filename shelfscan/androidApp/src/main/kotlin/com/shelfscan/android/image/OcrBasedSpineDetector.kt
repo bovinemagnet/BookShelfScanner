@@ -4,8 +4,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.google.mlkit.vision.text.TextRecognizer
 import com.shelfscan.android.ocr.toRecognizedTextBlocks
 import com.shelfscan.shared.core.model.BoundingBox
 import com.shelfscan.shared.core.model.CapturedImage
@@ -20,11 +19,10 @@ import kotlin.coroutines.resume
 
 class OcrBasedSpineDetector(
     private val context: Context,
+    private val recogniser: TextRecognizer,
     private val clusterAlgorithm: SpineClusteringAlgorithm = SpineClusteringAlgorithm(),
     private val bitmapCropper: BitmapCropper = BitmapCropper(context.cacheDir)
 ) : ImagePreprocessor {
-
-    private val recogniser = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     override suspend fun normalizeForOcr(image: CapturedImage): ProcessedImage {
         return ProcessedImage(

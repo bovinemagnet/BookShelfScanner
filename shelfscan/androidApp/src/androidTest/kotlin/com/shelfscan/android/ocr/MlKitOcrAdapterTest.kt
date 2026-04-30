@@ -1,6 +1,9 @@
 package com.shelfscan.android.ocr
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.shelfscan.android.test.TestImageLoader
 import com.shelfscan.shared.core.model.ProcessedImage
 import kotlinx.coroutines.runBlocking
@@ -13,13 +16,15 @@ import kotlin.test.assertTrue
 class MlKitOcrAdapterTest {
 
     private lateinit var adapter: MlKitOcrAdapter
+    private lateinit var recognizer: TextRecognizer
     private lateinit var imageLoader: TestImageLoader
     private lateinit var testImagePath: String
 
     @Before
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        adapter = MlKitOcrAdapter(context)
+        recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        adapter = MlKitOcrAdapter(context, recognizer)
         imageLoader = TestImageLoader()
         testImagePath = imageLoader.loadAsset("test_bookshelf.jpg")
     }
@@ -27,6 +32,7 @@ class MlKitOcrAdapterTest {
     @After
     fun tearDown() {
         imageLoader.cleanup()
+        recognizer.close()
     }
 
     @Test

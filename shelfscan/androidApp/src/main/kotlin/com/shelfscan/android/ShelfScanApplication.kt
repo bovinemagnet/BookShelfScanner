@@ -1,6 +1,9 @@
 package com.shelfscan.android
 
 import android.app.Application
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.shelfscan.android.image.OcrBasedSpineDetector
 import com.shelfscan.android.ocr.MlKitOcrAdapter
 import com.shelfscan.shared.data.metadata.OpenLibraryMetadataLookupService
@@ -28,6 +31,7 @@ import kotlinx.serialization.json.Json
 class ShelfScanApplication : Application() {
 
     private lateinit var httpClient: HttpClient
+    private lateinit var textRecognizer: TextRecognizer
 
     lateinit var scanRepository: DefaultScanRepository
         private set
@@ -47,13 +51,28 @@ class ShelfScanApplication : Application() {
                 connectTimeoutMillis = 5_000
             }
         }
+        // One ML Kit recogniser shared by both the OCR adapter and the
+        // OCR-based segmenter. Loading the latin model is expensive — doing it
+        // twice per Activity recreation was the previous default.
+        textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
         scanRepository = DefaultScanRepository()
         collectionRepository = DefaultCollectionRepository()
         processCapturedImageUseCase = ProcessCapturedImageUseCase(
-            imagePreprocessor = OcrBasedSpineDetector(this),
-            ocrEngine = MlKitOcrAdapter(this),
+            imagePreprocessor = OcrBasedSpineDetector(this, textRecognizer),
+            ocrEngine = MlKitOcrAdapter(this, textRecognizer),
             metadataLookupService = OpenLibraryMetadataLookupService(httpClient),
             scanRepository = scanRepository,
         )
+    }
+
+    override fun onTerminate() {
+        // Best-effort cleanup. Android docs note onTerminate is not guaranteed
+        // to fire in production — a full process-shutdown leak protection
+        // would need a different mechanism. Either way, we no longer leak
+        // these per Activity recreation, which was the actual bug.
+        if (::httpClient.isInitialized) httpClient.close()
+        if (::textRecognizer.isInitialized) textRecognizer.close()
+        super.onTerminate()
     }
 }
