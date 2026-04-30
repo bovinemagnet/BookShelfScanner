@@ -129,6 +129,25 @@ class ReviewWorkflowIntegrationTest {
     }
 
     @Test
+    fun `saving to same collection twice accumulates items`() {
+        // Scan 1
+        loadSession(makeMediaItem(id = "a", title = "Clean Code"))
+        viewModel.onAction(ReviewAction.SaveToCollection("col_acc", "Library"))
+        testScope.advanceUntilIdle()
+
+        // Scan 2 — fresh review session, same target collection
+        viewModel.onAction(ReviewAction.DiscardAll)
+        loadSession(makeMediaItem(id = "b", title = "Refactoring"))
+        viewModel.onAction(ReviewAction.SaveToCollection("col_acc", "Library"))
+        testScope.advanceUntilIdle()
+
+        val saved = getSavedCollection("col_acc")
+        assertEquals(2, saved.items.size, "second save must append, not overwrite")
+        assertTrue(saved.items.any { it.id == "a" })
+        assertTrue(saved.items.any { it.id == "b" })
+    }
+
+    @Test
     fun `discard all clears state`() {
         loadSession(
             makeMediaItem(id = "item_0"),

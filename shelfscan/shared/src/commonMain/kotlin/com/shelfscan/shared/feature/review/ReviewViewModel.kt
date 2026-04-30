@@ -109,11 +109,15 @@ class ReviewViewModel(
         scope.launch {
             _state.value = _state.value.copy(isLoading = true)
             try {
+                // Append to any existing collection rather than overwriting it.
+                // Dedup (e.g. by externalId) is intentionally deferred — see #10.
+                val existing = collectionRepository.getCollection(collectionId)
+                val mergedItems = (existing?.items ?: emptyList()) + _state.value.items
                 val collection = Collection(
                     id = collectionId,
-                    name = collectionName,
-                    createdAt = 0L,
-                    items = _state.value.items
+                    name = existing?.name ?: collectionName,
+                    createdAt = existing?.createdAt ?: 0L,
+                    items = mergedItems
                 )
                 collectionRepository.saveCollection(collection)
                 _state.value = _state.value.copy(savedToCollection = true, isLoading = false)
