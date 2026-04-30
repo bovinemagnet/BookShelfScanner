@@ -1,8 +1,8 @@
 package com.shelfscan.shared.feature.scan
 
 import com.shelfscan.shared.core.model.*
-import com.shelfscan.shared.data.repository.ScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
+import com.shelfscan.shared.domain.scan.ScanFailure
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,13 +48,21 @@ class ScanViewModel(
                     session = session,
                     isLoading = false
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 _state.value = ScanState(
                     status = ScanStatus.FAILED,
-                    error = ScanError.OcrFailed,
+                    error = e.toScanError(),
                     isLoading = false
                 )
             }
         }
+    }
+
+    private fun Throwable.toScanError(): ScanError = when (this) {
+        is ScanFailure.ImageProcessing -> ScanError.ImageProcessingFailed
+        is ScanFailure.Ocr -> ScanError.OcrFailed
+        is ScanFailure.MetadataLookup -> ScanError.MetadataLookupFailed
+        is ScanFailure.Save -> ScanError.SaveFailed
+        else -> ScanError.OcrFailed
     }
 }

@@ -23,6 +23,7 @@ import com.shelfscan.android.camera.CameraXAdapter
 import com.shelfscan.android.ui.ReviewScreen
 import com.shelfscan.android.viewmodel.AndroidReviewViewModel
 import com.shelfscan.android.viewmodel.AndroidScanViewModel
+import com.shelfscan.shared.core.model.ScanError
 import com.shelfscan.shared.core.model.ScanStatus
 import com.shelfscan.shared.feature.review.ReviewAction
 import com.shelfscan.shared.feature.review.ReviewViewModel
@@ -187,7 +188,7 @@ fun ScanScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Scan failed. Please try again.",
+                        scanFailureMessage(scanState.error),
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -217,6 +218,17 @@ fun ScanScreen(
             }
         }
     }
+}
+
+private fun scanFailureMessage(error: ScanError?): String = when (error) {
+    ScanError.OcrFailed -> "Couldn't read text on the spines. Try again with brighter, steadier light."
+    ScanError.MetadataLookupFailed -> "Couldn't reach the catalogue. Check your connection and retry."
+    ScanError.SaveFailed -> "Couldn't save the scan. Please try again."
+    ScanError.ImageProcessingFailed -> "Couldn't process the photo. Please retake it."
+    ScanError.CameraUnavailable -> "The camera is unavailable on this device."
+    ScanError.PermissionDenied -> "Camera permission is required to scan a shelf."
+    ScanError.ImageTooBlurry -> "The photo was too blurry. Please retake it."
+    null -> "Scan failed. Please try again."
 }
 
 @Composable
