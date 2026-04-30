@@ -20,10 +20,13 @@ class ProcessCapturedImageUseCase(
         val spines = runImagePhase { imagePreprocessor.detectShelfItems(image) }
 
         val items = spines.mapIndexed { index, spine ->
+            // Dimensions describe whatever `ref` points at — the cropped spine
+            // file in the normal path, or the full image in fallback paths.
+            // Fall back to whole-image dimensions if the bounding box is degenerate.
             val spineImage = ProcessedImage(
                 ref = spine.cropRef,
-                widthPx = processed.widthPx,
-                heightPx = processed.heightPx
+                widthPx = spineDimension(spine.boundingBox.right - spine.boundingBox.left, processed.widthPx),
+                heightPx = spineDimension(spine.boundingBox.bottom - spine.boundingBox.top, processed.heightPx),
             )
             val ocrResult = runOcrPhase { ocrEngine.recognizeText(spineImage) }
             val parsed = parseItem.execute(ocrResult.blocks)
@@ -89,6 +92,11 @@ class ProcessCapturedImageUseCase(
 
         runSavePhase { scanRepository.saveSession(session) }
         return session
+    }
+
+    private fun spineDimension(spineSize: Float, fallback: Int): Int {
+        val rounded = spineSize.toInt()
+        return if (rounded > 0) rounded else fallback
     }
 
     private inline fun <T> runImagePhase(block: () -> T): T = try {
