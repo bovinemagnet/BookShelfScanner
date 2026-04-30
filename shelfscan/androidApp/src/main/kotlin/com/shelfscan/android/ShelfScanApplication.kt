@@ -9,6 +9,7 @@ import com.shelfscan.shared.data.repository.DefaultScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -40,6 +41,10 @@ class ShelfScanApplication : Application() {
         httpClient = HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 5_000
+                connectTimeoutMillis = 5_000
             }
         }
         scanRepository = DefaultScanRepository()

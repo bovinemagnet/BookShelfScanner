@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -152,26 +153,33 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
-    fun `scores decrease monotonically across results`() = runTest {
-        val docs = (1..4).joinToString(",") { i ->
-            """{"title":"Book $i","key":"/works/OL$i"}"""
-        }
-        val service = serviceWith(body = """{"numFound":4,"docs":[$docs]}""")
+    fun `score reflects similarity to query title, not API position`() = runTest {
+        // Three docs returned in API order. The closest token match to "Clean Code"
+        // is the second doc, not the first — score must reflect that.
+        val body = """
+            {"numFound":3,"docs":[
+              {"title":"Cleaning Up","key":"/works/OL1"},
+              {"title":"Clean Code","key":"/works/OL2"},
+              {"title":"Cleanliness","key":"/works/OL3"}
+            ]}
+        """.trimIndent()
+        val service = serviceWith(body = body)
 
-        val matches = service.search(MediaType.BOOK, title = "Book", creatorName = null)
+        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
 
-        assertEquals(4, matches.size)
-        for (i in 1 until matches.size) {
+        assertEquals(3, matches.size)
+        val cleanCode = matches.first { it.title == "Clean Code" }
+        val others = matches.filter { it.title != "Clean Code" }
+        others.forEach { weaker ->
             assertTrue(
-                matches[i - 1].score > matches[i].score,
-                "expected matches[${i - 1}].score (${matches[i - 1].score}) > matches[$i].score (${matches[i].score})"
+                cleanCode.score > weaker.score,
+                "expected '${cleanCode.title}' (${cleanCode.score}) > '${weaker.title}' (${weaker.score})"
             )
         }
     }
 
     @Test
-    fun `score is clamped at zero for low-ranked results`() = runTest {
-        // 12 docs — with step 0.1 the 11th and 12th would go negative without the clamp.
+    fun `scores are bounded between zero and one`() = runTest {
         val docs = (1..12).joinToString(",") { i ->
             """{"title":"Book $i","key":"/works/OL$i"}"""
         }
@@ -189,10 +197,43 @@ class OpenLibraryMetadataLookupServiceTest {
         )
 
         val matches = service.search(MediaType.BOOK, title = "Book", creatorName = null)
+        matches.forEach {
+            assertTrue(it.score in 0.0..1.0, "score must be in [0, 1], got ${it.score}")
+        }
+    }
 
-        assertEquals(12, matches.size)
-        matches.forEach { assertTrue(it.score >= 0.0, "score should never be negative, got ${it.score}") }
-        assertEquals(0.0, matches[10].score)
-        assertEquals(0.0, matches[11].score)
+    @Test
+    fun `request carries a User-Agent header`() = runTest {
+        var capturedUa: String? = null
+        val service = serviceWith(onRequest = {
+            capturedUa = it.headers[HttpHeaders.UserAgent]
+        })
+
+        service.search(MediaType.BOOK, title = "anything", creatorName = null)
+
+        assertNotNull(capturedUa, "User-Agent header must be set")
+        assertTrue(
+            capturedUa!!.contains("ShelfScan", ignoreCase = true),
+            "User-Agent must identify the app: $capturedUa"
+        )
+    }
+
+    @Test
+    fun `slow request times out via HttpTimeout plugin and returns empty list`() = runTest {
+        val engine = MockEngine {
+            kotlinx.coroutines.delay(60_000) // far longer than the configured timeout
+            respond(content = ByteReadChannel("{\"docs\":[]}"), status = HttpStatusCode.OK)
+        }
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            install(io.ktor.client.plugins.HttpTimeout) {
+                requestTimeoutMillis = 50
+            }
+        }
+        val service = OpenLibraryMetadataLookupService(client = client)
+
+        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+
+        assertTrue(matches.isEmpty(), "expected empty list on timeout, got $matches")
     }
 }
