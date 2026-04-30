@@ -8,10 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -20,28 +19,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import com.shelfscan.android.camera.CameraXAdapter
-import com.shelfscan.android.ocr.MlKitOcrAdapter
+import com.shelfscan.android.ui.ReviewScreen
+import com.shelfscan.android.viewmodel.AndroidReviewViewModel
+import com.shelfscan.android.viewmodel.AndroidScanViewModel
 import com.shelfscan.shared.core.model.ScanStatus
-import com.shelfscan.shared.data.metadata.OpenLibraryMetadataLookupService
-import com.shelfscan.shared.data.repository.DefaultCollectionRepository
-import com.shelfscan.shared.data.repository.DefaultScanRepository
-import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import com.shelfscan.shared.feature.review.ReviewAction
-import com.shelfscan.shared.feature.review.ReviewState
 import com.shelfscan.shared.feature.review.ReviewViewModel
 import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
-import com.shelfscan.android.image.OcrBasedSpineDetector
-import com.shelfscan.android.ui.ReviewScreen
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 
 class MainViewModel : ViewModel() {
     var cameraPermissionGranted by mutableStateOf(false)
@@ -49,11 +37,10 @@ class MainViewModel : ViewModel() {
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
+    private val androidScanViewModel: AndroidScanViewModel by viewModels()
+    private val androidReviewViewModel: AndroidReviewViewModel by viewModels()
 
     private lateinit var cameraAdapter: CameraXAdapter
-    private lateinit var scanViewModel: ScanViewModel
-    private lateinit var reviewViewModel: ReviewViewModel
-    private lateinit var httpClient: HttpClient
 
     private val requestPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -65,29 +52,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         cameraAdapter = CameraXAdapter(this)
-
-        httpClient = HttpClient(OkHttp) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val processImageUseCase = ProcessCapturedImageUseCase(
-            imagePreprocessor = OcrBasedSpineDetector(this),
-            ocrEngine = MlKitOcrAdapter(this),
-            metadataLookupService = OpenLibraryMetadataLookupService(httpClient),
-            scanRepository = DefaultScanRepository()
-        )
-
-        scanViewModel = ScanViewModel(
-            processImage = processImageUseCase,
-            scope = lifecycleScope
-        )
-
-        reviewViewModel = ReviewViewModel(
-            collectionRepository = DefaultCollectionRepository(),
-            scope = lifecycleScope
-        )
 
         mainViewModel.cameraPermissionGranted = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
@@ -103,16 +67,11 @@ class MainActivity : ComponentActivity() {
                     cameraPermissionGranted = mainViewModel.cameraPermissionGranted,
                     onRequestPermission = { requestPermission.launch(Manifest.permission.CAMERA) },
                     cameraAdapter = cameraAdapter,
-                    scanViewModel = scanViewModel,
-                    reviewViewModel = reviewViewModel
+                    scanViewModel = androidScanViewModel.shared,
+                    reviewViewModel = androidReviewViewModel.shared
                 )
             }
         }
-    }
-
-    override fun onDestroy() {
-        if (::httpClient.isInitialized) httpClient.close()
-        super.onDestroy()
     }
 }
 
@@ -126,7 +85,7 @@ fun ShelfScanApp(
     scanViewModel: ScanViewModel,
     reviewViewModel: ReviewViewModel
 ) {
-    var currentScreen by remember { mutableStateOf(Screen.HOME) }
+    var currentScreen by rememberSaveable { mutableStateOf(Screen.HOME) }
     val scanState by scanViewModel.state.collectAsState()
     val reviewState by reviewViewModel.state.collectAsState()
 
