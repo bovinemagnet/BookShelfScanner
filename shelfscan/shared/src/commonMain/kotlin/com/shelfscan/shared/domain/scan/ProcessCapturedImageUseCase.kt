@@ -45,7 +45,7 @@ class ProcessCapturedImageUseCase(
                 ScoreConfidenceUseCase.ScoreInput(
                     segmentationConfidence = spine.confidence,
                     ocrConfidence = ocrConf,
-                    parserConfidence = if (parsed.titleCandidate != null) 0.7 else 0.1,
+                    parserConfidence = parsed.confidence,
                     catalogMatchConfidence = catalogConf,
                     reasons = buildList {
                         if (ocrConf < 0.5) add("low OCR confidence")

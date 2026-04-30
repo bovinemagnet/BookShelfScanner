@@ -60,7 +60,7 @@ class ProcessCapturedImageUseCaseTest {
     }
 
     @Test
-    fun `execute with multi-line OCR picks longest as title`() { runBlocking {
+    fun `execute with multi-line OCR picks the title and author correctly`() { runBlocking {
         val multiLineEngine = object : OcrEngine {
             override suspend fun recognizeText(image: ProcessedImage): OcrResult {
                 return OcrResult(
@@ -85,7 +85,8 @@ class ProcessCapturedImageUseCaseTest {
         val session = useCase.execute(image, "test_multi")
 
         val item = session.detectedItems.first()
-        assertEquals("Robert C. Martin", item.title) // longest line
+        assertEquals("Clean Code", item.title)
+        assertEquals("Robert C. Martin", item.creatorName)
         assertEquals(3, item.rawText.size)
     } }
 
