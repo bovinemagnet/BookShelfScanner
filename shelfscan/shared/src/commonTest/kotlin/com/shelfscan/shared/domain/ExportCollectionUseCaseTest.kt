@@ -2,9 +2,15 @@ package com.shelfscan.shared.domain
 
 import com.shelfscan.shared.core.model.*
 import com.shelfscan.shared.domain.export.ExportCollectionUseCase
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ExportCollectionUseCaseTest {
@@ -82,6 +88,35 @@ class ExportCollectionUseCaseTest {
         val csv = useCase.execute(items)
         val lines = csv.lines()
         assertEquals(3, lines.size) // header + 2 items
+    }
+
+    @Test
+    fun `json export escapes control characters in string values per RFC 8259`() {
+        // Real OCR output frequently has newlines and tabs; the spec says these
+        // must be escaped (\n, \t) inside string values. Hand-rolled escaping
+        // in the previous implementation passed them through verbatim, which
+        // strict downstream consumers (Python json, jq, etc.) reject.
+        val item = makeItem(
+            title = "Line one\nLine two",
+            creator = "Author\twith\ttabs"
+        )
+        val json = useCase.execute(listOf(item), ExportCollectionUseCase.ExportFormat.JSON)
+
+        // The escaped substring must appear; the literal control chars must not.
+        assertContains(json, "Line one\\nLine two")
+        assertContains(json, "Author\\twith\\ttabs")
+
+        // And it must round-trip through kotlinx-serialization.
+        val first = Json.parseToJsonElement(json).jsonArray.first() as JsonObject
+        assertEquals("Line one\nLine two", first["title"]!!.jsonPrimitive.content)
+        assertEquals("Author\twith\ttabs", first["creatorName"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `json export of empty list is parseable`() {
+        val json = useCase.execute(emptyList(), ExportCollectionUseCase.ExportFormat.JSON)
+        val element = Json.parseToJsonElement(json)
+        assertTrue(element is JsonArray && element.isEmpty())
     }
 
     @Test
