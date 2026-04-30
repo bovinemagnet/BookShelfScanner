@@ -128,4 +128,71 @@ class OpenLibraryMetadataLookupServiceTest {
         assertNull(matches[0].year)
         assertEquals("/works/OLX", matches[0].externalId)
     }
+
+    @Test
+    fun `returns empty list when HTTP call throws`() = runTest {
+        val engine = MockEngine { throw kotlinx.io.IOException("network down") }
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val service = OpenLibraryMetadataLookupService(client)
+
+        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+
+        assertTrue(matches.isEmpty())
+    }
+
+    @Test
+    fun `returns empty list when response body is malformed JSON`() = runTest {
+        val service = serviceWith(body = "this is not json at all")
+
+        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+
+        assertTrue(matches.isEmpty())
+    }
+
+    @Test
+    fun `scores decrease monotonically across results`() = runTest {
+        val docs = (1..4).joinToString(",") { i ->
+            """{"title":"Book $i","key":"/works/OL$i"}"""
+        }
+        val service = serviceWith(body = """{"numFound":4,"docs":[$docs]}""")
+
+        val matches = service.search(MediaType.BOOK, title = "Book", creatorName = null)
+
+        assertEquals(4, matches.size)
+        for (i in 1 until matches.size) {
+            assertTrue(
+                matches[i - 1].score > matches[i].score,
+                "expected matches[${i - 1}].score (${matches[i - 1].score}) > matches[$i].score (${matches[i].score})"
+            )
+        }
+    }
+
+    @Test
+    fun `score is clamped at zero for low-ranked results`() = runTest {
+        // 12 docs — with step 0.1 the 11th and 12th would go negative without the clamp.
+        val docs = (1..12).joinToString(",") { i ->
+            """{"title":"Book $i","key":"/works/OL$i"}"""
+        }
+        val service = OpenLibraryMetadataLookupService(
+            client = HttpClient(MockEngine {
+                respond(
+                    content = ByteReadChannel("""{"numFound":12,"docs":[$docs]}"""),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }) {
+                install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            },
+            resultLimit = 20
+        )
+
+        val matches = service.search(MediaType.BOOK, title = "Book", creatorName = null)
+
+        assertEquals(12, matches.size)
+        matches.forEach { assertTrue(it.score >= 0.0, "score should never be negative, got ${it.score}") }
+        assertEquals(0.0, matches[10].score)
+        assertEquals(0.0, matches[11].score)
+    }
 }

@@ -1,79 +1,83 @@
+// shelfscan/iosApp/iosApp/ui/ReviewView.swift
 import SwiftUI
+import ShelfScanShared
 
 struct ReviewView: View {
+    let items: [MediaItem]
     let onDone: () -> Void
-
-    @State private var detectedItems: [DetectedBookItem] = [
-        DetectedBookItem(title: "Clean Code", creator: "Robert C. Martin", confidence: 0.91),
-        DetectedBookItem(title: "The Pragmatic Programmer", creator: "Andrew Hunt", confidence: 0.87),
-        DetectedBookItem(title: "Design Patterns", creator: "Gang of Four", confidence: 0.73)
-    ]
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach($detectedItems) { $item in
-                    BookItemRow(item: $item)
+            if items.isEmpty {
+                ContentUnavailableView(
+                    "No Books Detected",
+                    systemImage: "books.vertical",
+                    description: Text("Try capturing the shelf again with better lighting.")
+                )
+                .navigationTitle("Review Results")
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { onDone() }
+                    }
+                }
+            } else {
+                List(items, id: \.id) { item in
+                    BookItemRow(item: item)
+                }
+                .navigationTitle("Review Results")
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") { onDone() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Discard") { onDone() }
+                            .foregroundColor(.red)
+                    }
                 }
             }
-            .navigationTitle("Review Results")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onDone() }
-                        .buttonStyle(.borderedProminent)
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Discard") { onDone() }
-                        .foregroundColor(.red)
-                }
-            }
-        }
-    }
-}
-
-struct DetectedBookItem: Identifiable {
-    let id = UUID()
-    var title: String
-    var creator: String
-    var confidence: Double
-
-    var confidenceBand: String {
-        switch confidence {
-        case 0.75...: return "High"
-        case 0.50...: return "Medium"
-        case 0.25...: return "Low"
-        default: return "Needs Review"
-        }
-    }
-
-    var confidenceColor: Color {
-        switch confidence {
-        case 0.75...: return .green
-        case 0.50...: return .orange
-        default: return .red
         }
     }
 }
 
 struct BookItemRow: View {
-    @Binding var item: DetectedBookItem
+    let item: MediaItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField("Title", text: $item.title)
+            Text(item.title ?? "(no title)")
                 .font(.headline)
-            TextField("Author", text: $item.creator)
+            Text(item.creatorName ?? "(no author)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             HStack {
                 Image(systemName: "circle.fill")
                     .font(.caption2)
-                    .foregroundColor(item.confidenceColor)
-                Text(item.confidenceBand)
+                    .foregroundColor(confidenceColor(for: item.confidence.band))
+                Text(confidenceLabel(for: item.confidence.band))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func confidenceColor(for band: ConfidenceBand) -> Color {
+        switch band {
+        case .high: return .green
+        case .medium: return .orange
+        case .low, .needsReview: return .red
+        default: return .gray
+        }
+    }
+
+    private func confidenceLabel(for band: ConfidenceBand) -> String {
+        switch band {
+        case .high: return "High"
+        case .medium: return "Medium"
+        case .low: return "Low"
+        case .needsReview: return "Needs Review"
+        default: return "Unknown"
+        }
     }
 }

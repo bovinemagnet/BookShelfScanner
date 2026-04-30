@@ -14,73 +14,73 @@ This directory contains the native iOS app built with SwiftUI + AVFoundation + A
 iosApp/
   iosApp/
     ShelfScanApp.swift          - @main SwiftUI entry point
-    ContentView.swift           - Top-level navigation router
+    ContentView.swift           - Top-level navigation router; threads the ScanSession
     Info.plist                  - App permissions (camera, photo library)
     ui/
       HomeView.swift            - Home screen
-      ScanView.swift            - Camera capture screen (AVFoundation)
-      ReviewView.swift          - Editable results list
+      ScanView.swift            - Camera capture screen, calls shared use case
+      ReviewView.swift          - Displays shared MediaItem list from the ScanSession
     camera/
       AVFoundationCameraAdapter.swift  - AVCaptureSession + photo capture
                                          CameraPreviewView (UIViewRepresentable)
     ocr/
       VisionOcrAdapter.swift    - VNRecognizeTextRequest OCR (Apple Vision)
+    platform/
+      SwiftIosOcrCallback.swift               - Implements shared IosOcrCallback;
+                                                wraps VisionOcrAdapter
+      SwiftIosImagePreprocessorCallback.swift - Implements shared IosImagePreprocessorCallback
+                                                (passthrough; full-image spine)
   iosApp.xcodeproj/
     project.pbxproj             - Xcode project definition
 ```
 
 ## Building
 
-1. Open `iosApp.xcodeproj` in Xcode.
-2. Select a simulator or connected device.
-3. Build and run (`Cmd+R`).
+1. Build and link the shared XCFramework (one-time, on macOS):
+
+   ```bash
+   cd ../  # shelfscan/
+   ./Scripts/link-shared-xcframework.sh
+   ```
+
+   The script builds the framework and prints the path plus the Xcode link steps.
+
+2. Open `iosApp.xcodeproj` in Xcode and follow the steps the script printed to add
+   the framework to the project.
+3. Select a simulator or connected device.
+4. Build and run (`Cmd+R`).
 
 ## Integration with shared KMP module
 
-The shared business logic is in `../shared/`. To integrate:
-
-### 1. Build the XCFramework from the shared module
-
-Run from the `shelfscan/` directory on macOS:
-
-```bash
-./gradlew :shared:assembleShelfScanSharedXCFramework
-```
-
-This outputs to `shared/build/XCFrameworks/release/ShelfScanShared.xcframework`.
-
-### 2. Link the framework in Xcode
-
-- In Xcode, select the `iosApp` target → **General** → **Frameworks, Libraries, and Embedded Content**
-- Click **+** → **Add Other…** → **Add Files…**
-- Navigate to and select `ShelfScanShared.xcframework`
-- Set **Embed** to **Embed & Sign**
-
-### 3. Import in Swift
+The Swift app calls into the shared KMP module through `IosShelfScanFactory`:
 
 ```swift
 import ShelfScanShared
 
-// Use domain use cases directly
-let scoreUseCase = ScoreConfidenceUseCase()
-let result = scoreUseCase.execute(
-    input: ScoreConfidenceUseCaseScoreInput(
-        segmentationConfidence: 0.9,
-        ocrConfidence: 0.85,
-        parserConfidence: 0.7,
-        catalogMatchConfidence: 0.8,
-        reasons: []
-    )
+let processUseCase = IosShelfScanFactory.shared.createProcessCapturedImageUseCase(
+    ocrCallback: SwiftIosOcrCallback(),
+    preprocessorCallback: SwiftIosImagePreprocessorCallback(),
+    metadataService: nil,    // defaults to OpenLibraryMetadataLookupService
+    scanRepository: nil      // defaults to in-memory DefaultScanRepository
 )
-print(result.band) // HIGH
+
+let session = try await processUseCase.execute(
+    image: capturedImage,
+    sessionId: "session_..."
+)
+print(session.detectedItems)
 ```
 
-## iOS-specific responsibilities (per architecture doc)
+`SwiftIosOcrCallback` wraps `VisionOcrAdapter`. `SwiftIosImagePreprocessorCallback` is
+currently a passthrough; replace it with a Vision-based spine detector when iOS-side
+segmentation is desired.
 
-| Component | Implementation |
-|-----------|---------------|
-| Camera capture | `AVFoundationCameraAdapter` using `AVCaptureSession` |
-| OCR | `VisionOcrAdapter` using `VNRecognizeTextRequest` (`.accurate` mode) |
-| Image quality gate | Shared `ImageQualityAssessment` via KMP |
-| Business logic | Shared KMP module (`ParseDetectedItemUseCase`, `ScoreConfidenceUseCase`, etc.) |
-| UI | SwiftUI with MVVM (`ObservableObject` / `@StateObject`) |
+## iOS-specific responsibilities
+
+| Component         | Implementation                                                  |
+|-------------------|-----------------------------------------------------------------|
+| Camera capture    | `AVFoundationCameraAdapter` using `AVCaptureSession`            |
+| OCR               | `VisionOcrAdapter` using `VNRecognizeTextRequest` (`.accurate`) |
+| Image preprocessor| `SwiftIosImagePreprocessorCallback` (passthrough placeholder)   |
+| Business logic    | Shared KMP module via `IosShelfScanFactory`                     |
+| UI                | SwiftUI with MVVM (`ObservableObject` / `@StateObject`)         |
