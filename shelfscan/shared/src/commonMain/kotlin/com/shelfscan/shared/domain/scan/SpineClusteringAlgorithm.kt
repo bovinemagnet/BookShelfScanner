@@ -17,9 +17,11 @@ class SpineClusteringAlgorithm(
 
         val sorted = withBoxes.sortedBy { horizontalCentre(it.boundingBox!!) }
 
-        val averageWidth = sorted.map { it.boundingBox!!.right - it.boundingBox.left }
-            .average()
-        val gapThreshold = (averageWidth * gapMultiplier).toFloat()
+        // Median, not mean: a single very wide spine (hardcover next to paperbacks)
+        // would otherwise inflate the threshold and silently merge adjacent narrow
+        // spines into one cluster.
+        val widths = sorted.map { it.boundingBox!!.right - it.boundingBox.left }
+        val gapThreshold = (medianFloat(widths) * gapMultiplier).toFloat()
 
         val clusters = mutableListOf<MutableList<RecognizedTextBlock>>()
         var currentCluster = mutableListOf(sorted.first())
@@ -56,5 +58,12 @@ class SpineClusteringAlgorithm(
             right = boxes.maxOf { it.right },
             bottom = boxes.maxOf { it.bottom }
         )
+    }
+
+    private fun medianFloat(values: List<Float>): Double {
+        val sorted = values.sorted()
+        val n = sorted.size
+        return if (n % 2 == 1) sorted[n / 2].toDouble()
+        else (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
     }
 }

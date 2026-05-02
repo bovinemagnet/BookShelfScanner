@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylised stack of three books on a shelf, drawn within the safe area
+         (centred 72×72 box at offset 18,18). -->
+    <group android:translateX="20" android:translateY="22">
+        <!-- Tall book -->
+        <path android:fillColor="#FFFFFF" android:pathData="M6,10 h12 v54 h-12 z" />
+        <!-- Medium book, slightly tilted right via gradient stroke -->
+        <path android:fillColor="#FFFFFF" android:pathData="M22,16 h12 v48 h-12 z" />
+        <!-- Short fat book -->
+        <path android:fillColor="#FFFFFF" android:pathData="M38,24 h22 v40 h-22 z" />
+        <!-- Shelf line -->
+        <path android:fillColor="#FFFFFF" android:pathData="M2,64 h62 v3 h-62 z" />
+    </group>
+</vector>

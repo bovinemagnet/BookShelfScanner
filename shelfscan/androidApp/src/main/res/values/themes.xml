@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Activity-side theme is intentionally minimal: Compose draws the rest of
+      the UI. This theme exists only to give the activity a sane no-action-bar
+      base before setContent { } takes over, and to drop the AppCompat
+      dependency that the previous Theme.AppCompat.DayNight.NoActionBar
+      pulled in.
+    -->
+    <style name="Theme.ShelfScan" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

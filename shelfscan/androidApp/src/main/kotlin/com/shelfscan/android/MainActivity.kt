@@ -198,17 +198,26 @@ fun ScanScreen(
                 }
             }
             else -> {
+                // Local in-flight flag avoids the race window between tap and
+                // ScanState.isLoading flipping. Without it, fast double-taps
+                // launch concurrent cameraAdapter.captureImage() calls.
+                var isCapturing by remember { mutableStateOf(false) }
                 Button(
                     onClick = {
+                        if (isCapturing) return@Button
+                        isCapturing = true
                         coroutineScope.launch {
                             try {
                                 val image = cameraAdapter.captureImage()
                                 scanViewModel.onAction(ScanAction.CaptureImage(image))
                             } catch (_: Exception) {
                                 scanViewModel.onAction(ScanAction.RetryCapture)
+                            } finally {
+                                isCapturing = false
                             }
                         }
                     },
+                    enabled = !isCapturing,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp)

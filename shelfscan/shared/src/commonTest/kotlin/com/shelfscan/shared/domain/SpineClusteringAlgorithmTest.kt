@@ -119,6 +119,21 @@ class SpineClusteringAlgorithmTest {
     }
 
     @Test
+    fun oneWideBookDoesNotMergeNarrowNeighbours() {
+        // One wide hardcover at the right next to three narrow paperbacks on the left.
+        // A mean-based threshold gets inflated by the wide book and merges adjacent
+        // narrow spines together. A median-based threshold is robust to this.
+        val blocks = listOf(
+            block("paperback A", 0f, 0f, 30f, 200f),       // width 30
+            block("paperback B", 50f, 0f, 80f, 200f),      // width 30, gap 20
+            block("paperback C", 100f, 0f, 130f, 200f),    // width 30, gap 20
+            block("hardcover",   200f, 0f, 400f, 200f)     // width 200, gap 70
+        )
+        val result = algorithm.cluster(blocks)
+        assertEquals(4, result.size, "each book should remain its own cluster")
+    }
+
+    @Test
     fun overlappingBlocksInSameRegionClusterTogether() {
         val blocks = listOf(
             block("Part A", 10f, 0f, 60f, 100f),
