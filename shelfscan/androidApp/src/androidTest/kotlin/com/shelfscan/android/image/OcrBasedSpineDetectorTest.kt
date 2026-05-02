@@ -1,6 +1,9 @@
 package com.shelfscan.android.image
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.shelfscan.android.test.TestImageLoader
 import com.shelfscan.shared.core.model.CapturedImage
 import kotlinx.coroutines.runBlocking
@@ -14,13 +17,15 @@ import kotlin.test.assertTrue
 class OcrBasedSpineDetectorTest {
 
     private lateinit var detector: OcrBasedSpineDetector
+    private lateinit var recognizer: TextRecognizer
     private lateinit var imageLoader: TestImageLoader
     private lateinit var testImagePath: String
 
     @Before
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        detector = OcrBasedSpineDetector(context)
+        recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        detector = OcrBasedSpineDetector(context, recognizer)
         imageLoader = TestImageLoader()
         testImagePath = imageLoader.loadAsset("test_bookshelf.jpg")
     }
@@ -28,6 +33,7 @@ class OcrBasedSpineDetectorTest {
     @After
     fun tearDown() {
         imageLoader.cleanup()
+        recognizer.close()
     }
 
     @Test

@@ -105,6 +105,7 @@ sealed interface ScanError {
     data object CameraUnavailable : ScanError
     data object PermissionDenied : ScanError
     data object ImageTooBlurry : ScanError
+    data object ImageProcessingFailed : ScanError
     data object OcrFailed : ScanError
     data object MetadataLookupFailed : ScanError
     data object SaveFailed : ScanError

@@ -16,24 +16,29 @@ class ProcessCapturedImageUseCase(
     private val clock: () -> Long = { 0L }
 ) {
     suspend fun execute(image: CapturedImage, sessionId: String): ScanSession {
-        val processed = imagePreprocessor.normalizeForOcr(image)
-        val spines = imagePreprocessor.detectShelfItems(image)
+        val processed = runImagePhase { imagePreprocessor.normalizeForOcr(image) }
+        val spines = runImagePhase { imagePreprocessor.detectShelfItems(image) }
 
         val items = spines.mapIndexed { index, spine ->
+            // Dimensions describe whatever `ref` points at — the cropped spine
+            // file in the normal path, or the full image in fallback paths.
+            // Fall back to whole-image dimensions if the bounding box is degenerate.
             val spineImage = ProcessedImage(
                 ref = spine.cropRef,
-                widthPx = processed.widthPx,
-                heightPx = processed.heightPx
+                widthPx = spineDimension(spine.boundingBox.right - spine.boundingBox.left, processed.widthPx),
+                heightPx = spineDimension(spine.boundingBox.bottom - spine.boundingBox.top, processed.heightPx),
             )
-            val ocrResult = ocrEngine.recognizeText(spineImage)
+            val ocrResult = runOcrPhase { ocrEngine.recognizeText(spineImage) }
             val parsed = parseItem.execute(ocrResult.blocks)
 
             val catalogMatches = if (parsed.titleCandidate != null) {
-                metadataLookupService.search(
-                    mediaType = MediaType.BOOK,
-                    title = parsed.titleCandidate,
-                    creatorName = parsed.creatorCandidate
-                )
+                runMetadataPhase {
+                    metadataLookupService.search(
+                        mediaType = MediaType.BOOK,
+                        title = parsed.titleCandidate,
+                        creatorName = parsed.creatorCandidate
+                    )
+                }
             } else emptyList()
 
             val topMatch = catalogMatches.firstOrNull()
@@ -45,7 +50,7 @@ class ProcessCapturedImageUseCase(
                 ScoreConfidenceUseCase.ScoreInput(
                     segmentationConfidence = spine.confidence,
                     ocrConfidence = ocrConf,
-                    parserConfidence = if (parsed.titleCandidate != null) 0.7 else 0.1,
+                    parserConfidence = parsed.confidence,
                     catalogMatchConfidence = catalogConf,
                     reasons = buildList {
                         if (ocrConf < 0.5) add("low OCR confidence")
@@ -85,7 +90,44 @@ class ProcessCapturedImageUseCase(
             detectedItems = items
         )
 
-        scanRepository.saveSession(session)
+        runSavePhase { scanRepository.saveSession(session) }
         return session
+    }
+
+    private fun spineDimension(spineSize: Float, fallback: Int): Int {
+        val rounded = spineSize.toInt()
+        return if (rounded > 0) rounded else fallback
+    }
+
+    private inline fun <T> runImagePhase(block: () -> T): T = try {
+        block()
+    } catch (e: ScanFailure) {
+        throw e
+    } catch (e: Throwable) {
+        throw ScanFailure.ImageProcessing(e)
+    }
+
+    private inline fun <T> runOcrPhase(block: () -> T): T = try {
+        block()
+    } catch (e: ScanFailure) {
+        throw e
+    } catch (e: Throwable) {
+        throw ScanFailure.Ocr(e)
+    }
+
+    private inline fun <T> runMetadataPhase(block: () -> T): T = try {
+        block()
+    } catch (e: ScanFailure) {
+        throw e
+    } catch (e: Throwable) {
+        throw ScanFailure.MetadataLookup(e)
+    }
+
+    private inline fun <T> runSavePhase(block: () -> T): T = try {
+        block()
+    } catch (e: ScanFailure) {
+        throw e
+    } catch (e: Throwable) {
+        throw ScanFailure.Save(e)
     }
 }

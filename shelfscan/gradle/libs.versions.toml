@@ -13,7 +13,6 @@ androidxTestRunner = "1.6.2"
 androidxTestRules = "1.6.1"
 androidxTestExtJunit = "1.2.1"
 activityCompose = "1.13.0"
-appcompat = "1.7.1"
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -53,7 +52,6 @@ compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-activity = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 
 # Test
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test" }

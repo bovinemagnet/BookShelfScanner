@@ -1,12 +1,17 @@
 package com.shelfscan.shared.integration
 
+import com.shelfscan.shared.core.model.CatalogMatch
+import com.shelfscan.shared.core.model.MediaType
 import com.shelfscan.shared.core.model.ScanError
+import com.shelfscan.shared.core.model.ScanSession
 import com.shelfscan.shared.core.model.ScanStatus
 import com.shelfscan.shared.data.repository.DefaultScanRepository
+import com.shelfscan.shared.data.repository.ScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
+import com.shelfscan.shared.platform.MetadataLookupService
 import com.shelfscan.shared.platform.NoOpMetadataLookupService
 import com.shelfscan.shared.platform.PassthroughImagePreprocessor
 import kotlinx.coroutines.test.TestScope
@@ -79,7 +84,7 @@ class ScanViewModelIntegrationTest {
     }
 
     @Test
-    fun `OCR failure produces error state`() {
+    fun `OCR failure maps to OcrFailed error`() {
         val (viewModel, scope) = createViewModel(
             ocrEngine = ConfigurableFakeOcrEngine(shouldThrow = true)
         )
@@ -92,6 +97,53 @@ class ScanViewModelIntegrationTest {
         assertEquals(ScanError.OcrFailed, state.error)
         assertFalse(state.isLoading)
         assertNull(state.session)
+    }
+
+    @Test
+    fun `metadata failure maps to MetadataLookupFailed error`() {
+        val scope = TestScope()
+        val throwingMetadata = object : MetadataLookupService {
+            override suspend fun search(
+                mediaType: MediaType,
+                title: String?,
+                creatorName: String?
+            ): List<CatalogMatch> = throw RuntimeException("upstream went down")
+        }
+        val useCase = ProcessCapturedImageUseCase(
+            imagePreprocessor = PassthroughImagePreprocessor(),
+            ocrEngine = ConfigurableFakeOcrEngine(defaultResult = ocrResultFor("Some Book")),
+            metadataLookupService = throwingMetadata,
+            scanRepository = DefaultScanRepository()
+        )
+        val viewModel = ScanViewModel(processImage = useCase, scope = scope)
+
+        viewModel.onAction(ScanAction.CaptureImage(testImage))
+        scope.advanceUntilIdle()
+
+        assertEquals(ScanError.MetadataLookupFailed, viewModel.state.value.error)
+    }
+
+    @Test
+    fun `repository save failure maps to SaveFailed error`() {
+        val scope = TestScope()
+        val throwingRepo = object : ScanRepository {
+            override suspend fun saveSession(session: ScanSession): Unit =
+                throw RuntimeException("disk full")
+            override suspend fun getSession(id: String): ScanSession? = null
+            override suspend fun getAllSessions(): List<ScanSession> = emptyList()
+        }
+        val useCase = ProcessCapturedImageUseCase(
+            imagePreprocessor = PassthroughImagePreprocessor(),
+            ocrEngine = ConfigurableFakeOcrEngine(),
+            metadataLookupService = NoOpMetadataLookupService(),
+            scanRepository = throwingRepo
+        )
+        val viewModel = ScanViewModel(processImage = useCase, scope = scope)
+
+        viewModel.onAction(ScanAction.CaptureImage(testImage))
+        scope.advanceUntilIdle()
+
+        assertEquals(ScanError.SaveFailed, viewModel.state.value.error)
     }
 
     @Test

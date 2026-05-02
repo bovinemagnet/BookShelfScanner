@@ -18,6 +18,7 @@ import com.shelfscan.shared.core.model.ConfidenceBand
 import com.shelfscan.shared.core.model.ItemSource
 import com.shelfscan.shared.core.model.MediaItem
 import com.shelfscan.shared.core.model.MediaType
+import com.shelfscan.shared.core.model.ScanError
 import com.shelfscan.shared.feature.review.ReviewAction
 import com.shelfscan.shared.feature.review.ReviewState
 import com.shelfscan.shared.feature.review.ReviewViewModel
@@ -157,48 +158,107 @@ fun ReviewScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (reviewState.savedToCollection) {
-            Text("Saved!", style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to Home")
+        reviewState.error?.let { error ->
+            Text(
+                text = reviewErrorMessage(error),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        when {
+            reviewState.savedToCollection -> {
+                Text("Saved!", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                    Text("Back to Home")
+                }
             }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        reviewViewModel.onAction(
-                            ReviewAction.SaveToCollection(
-                                collectionId = "default",
-                                collectionName = "My Books"
+            reviewState.isLoading -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Saving…")
+                }
+            }
+            else -> {
+                var showDiscardConfirm by remember { mutableStateOf(false) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            reviewViewModel.onAction(
+                                ReviewAction.SaveToCollection(
+                                    collectionId = "default",
+                                    collectionName = "My Books"
+                                )
                             )
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Save")
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save")
+                    }
+                    FilledTonalButton(
+                        onClick = { reviewViewModel.onAction(ReviewAction.ApproveAll) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Approve All")
+                    }
+                    OutlinedButton(
+                        onClick = { showDiscardConfirm = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Discard")
+                    }
                 }
-                FilledTonalButton(
-                    onClick = { reviewViewModel.onAction(ReviewAction.ApproveAll) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Approve All")
-                }
-                OutlinedButton(
-                    onClick = {
-                        reviewViewModel.onAction(ReviewAction.DiscardAll)
-                        onDone()
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Discard")
+
+                if (showDiscardConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showDiscardConfirm = false },
+                        title = { Text("Discard scan?") },
+                        text = {
+                            Text(
+                                "This removes all ${reviewState.items.size} detected " +
+                                    "items. You can't undo this."
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showDiscardConfirm = false
+                                reviewViewModel.onAction(ReviewAction.DiscardAll)
+                                onDone()
+                            }) {
+                                Text("Discard", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDiscardConfirm = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
                 }
             }
         }
     }
+}
+
+private fun reviewErrorMessage(error: ScanError): String = when (error) {
+    ScanError.SaveFailed -> "Couldn't save the collection. Please try again."
+    ScanError.MetadataLookupFailed -> "Couldn't look up book details right now."
+    ScanError.OcrFailed -> "Couldn't read text on the spines."
+    ScanError.ImageProcessingFailed -> "Couldn't process the photo."
+    ScanError.CameraUnavailable -> "Camera unavailable."
+    ScanError.PermissionDenied -> "Camera permission required."
+    ScanError.ImageTooBlurry -> "Photo was too blurry."
 }
 
 @Composable
