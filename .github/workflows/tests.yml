@@ -1,0 +1,83 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shared-unit-tests:
+    name: Shared module unit tests (JVM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x shelfscan/gradlew
+
+      - name: Run shared unit tests
+        working-directory: shelfscan
+        run: ./gradlew :shared:jvmTest --no-daemon
+
+      - name: Upload shared test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-test-reports
+          path: shelfscan/shared/build/reports/tests/
+          retention-days: 14
+
+  instrumented-tests:
+    name: Android instrumented tests
+    # macOS runners support HW-accelerated x86_64 emulators.
+    # Limited to push-to-main to keep macOS minute usage in check;
+    # PRs that touch androidApp/ should be smoke-tested locally,
+    # or this job can be enabled per-PR by adding a label trigger.
+    if: github.event_name == 'push'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x shelfscan/gradlew
+
+      - name: Run instrumented tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: cd shelfscan && ./gradlew :androidApp:connectedAndroidTest --no-daemon
+
+      - name: Upload instrumented test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-test-reports
+          path: shelfscan/androidApp/build/reports/androidTests/
+          retention-days: 14
