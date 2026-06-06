@@ -13,10 +13,10 @@ final class SwiftIosImagePreprocessorCallback: IosImagePreprocessorCallback {
         imagePath: String,
         widthPx: Int32,
         heightPx: Int32,
-        onSuccess: @escaping (String, Int32, Int32) -> Void,
+        onSuccess: @escaping (String, KotlinInt, KotlinInt) -> Void,
         onError: @escaping (String) -> Void
     ) {
-        onSuccess(imagePath, widthPx, heightPx)
+        onSuccess(imagePath, KotlinInt(int: widthPx), KotlinInt(int: heightPx))
     }
 
     func detectShelfItems(
