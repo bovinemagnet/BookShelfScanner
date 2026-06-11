@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # shelfscan/Scripts/link-shared-xcframework.sh
 #
-# Builds the ShelfScanShared XCFramework for iOS targets and prints the
-# path along with the manual steps a developer needs in Xcode to link it.
+# Builds the ShelfScanShared XCFramework for iOS targets. The Xcode project
+# already links the framework from the Gradle output path, so building it is
+# all that is needed before opening the project in Xcode.
 #
 # Run on macOS only. The Linux dev environment cannot produce an XCFramework.
 set -euo pipefail
@@ -25,10 +26,8 @@ XCF_PATH="$SHELFSCAN_DIR/shared/build/XCFrameworks/release/ShelfScanShared.xcfra
 echo
 echo "Built: $XCF_PATH"
 echo
-echo "Next steps in Xcode (one-time):"
+echo "The Xcode project already links the framework from this path, so:"
 echo "  1. Open $SHELFSCAN_DIR/iosApp/iosApp.xcodeproj"
-echo "  2. Select target 'iosApp' -> General -> Frameworks, Libraries, and Embedded Content"
-echo "  3. Click '+' -> Add Other... -> Add Files..."
-echo "  4. Navigate to and select: $XCF_PATH"
-echo "  5. Set Embed to 'Embed & Sign'"
-echo "  6. Build and run (Cmd+R)"
+echo "  2. Build and run (Cmd+R)"
+echo
+echo "Re-run this script whenever the shared module changes."

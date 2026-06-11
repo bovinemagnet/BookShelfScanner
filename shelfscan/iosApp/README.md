@@ -36,19 +36,31 @@ iosApp/
 
 ## Building
 
-1. Build and link the shared XCFramework (one-time, on macOS):
+1. Build the shared XCFramework (on macOS; re-run whenever the shared module changes):
 
    ```bash
    cd ../  # shelfscan/
    ./Scripts/link-shared-xcframework.sh
    ```
 
-   The script builds the framework and prints the path plus the Xcode link steps.
+   The Xcode project already links `ShelfScanShared.xcframework` from the Gradle
+   output path (`shared/build/XCFrameworks/release`), so no manual link step is
+   needed — the framework just has to exist there.
 
-2. Open `iosApp.xcodeproj` in Xcode and follow the steps the script printed to add
-   the framework to the project.
+2. Open `iosApp.xcodeproj` in Xcode.
 3. Select a simulator or connected device.
 4. Build and run (`Cmd+R`).
+
+## Continuous integration
+
+`.github/workflows/ios.yml` runs on pushes to `main` that touch `shared/` or
+`iosApp/` (and on demand via *Run workflow* in the Actions tab). On a macOS
+runner it:
+
+1. runs the shared test suite on the Kotlin/Native iOS simulator target
+   (`:shared:iosSimulatorArm64Test`);
+2. builds the XCFramework;
+3. builds this app for the iOS simulator with `xcodebuild` (unsigned).
 
 ## Integration with shared KMP module
 

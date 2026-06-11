@@ -1,0 +1,69 @@
+name: iOS
+
+# macOS runner minutes are expensive, so this workflow only runs when
+# iOS-relevant code changes on main, or on demand via workflow_dispatch.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'shelfscan/shared/**'
+      - 'shelfscan/iosApp/**'
+      - 'shelfscan/gradle/**'
+      - 'shelfscan/*.gradle.kts'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-build:
+    name: Shared iOS tests + app build (simulator)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x shelfscan/gradlew
+
+      # Runs the shared commonTest suite on the Kotlin/Native iOS simulator
+      # target — the same tests CI already runs on the JVM, now on iOS.
+      - name: Run shared tests on iOS simulator target
+        working-directory: shelfscan
+        run: ./gradlew :shared:iosSimulatorArm64Test --no-daemon
+
+      - name: Build ShelfScanShared XCFramework
+        working-directory: shelfscan
+        run: ./gradlew :shared:assembleShelfScanSharedXCFramework --no-daemon
+
+      # The Xcode project links the XCFramework from the Gradle output path
+      # (shared/build/XCFrameworks/release), so it must be built first.
+      - name: Build iOS app for simulator
+        working-directory: shelfscan/iosApp
+        run: |
+          xcodebuild \
+            -project iosApp.xcodeproj \
+            -target iosApp \
+            -configuration Release \
+            -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload shared iOS test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-reports
+          path: shelfscan/shared/build/reports/tests/
+          retention-days: 14
