@@ -52,7 +52,13 @@ data class DetectedSpine(
     val id: String,
     val cropRef: String,
     val boundingBox: BoundingBox,
-    val confidence: Double
+    val confidence: Double,
+    /**
+     * True when segmentation could not separate individual items and the
+     * "spine" is just the whole capture — the UI should not present it as a
+     * confidently detected single book.
+     */
+    val isWholeImageFallback: Boolean = false
 )
 
 data class BoundingBox(

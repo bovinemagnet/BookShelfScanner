@@ -138,6 +138,32 @@ class ProcessCapturedImageUseCaseTest {
     } }
 
     @Test
+    fun `whole-image fallback spine carries a reason the UI can surface`() { runBlocking {
+        val fallbackSpine = com.shelfscan.shared.core.model.DetectedSpine(
+            id = "spine_0",
+            cropRef = "/fake/shelf.jpg",
+            boundingBox = com.shelfscan.shared.core.model.BoundingBox(0f, 0f, 1280f, 960f),
+            confidence = 0.5,
+            isWholeImageFallback = true
+        )
+        val useCase = ProcessCapturedImageUseCase(
+            imagePreprocessor = MultiSpineImagePreprocessor(listOf(fallbackSpine)),
+            ocrEngine = ConfigurableFakeOcrEngine(defaultResult = ocrResultFor("Some Book")),
+            metadataLookupService = NoOpMetadataLookupService(),
+            scanRepository = DefaultScanRepository()
+        )
+
+        val image = CapturedImage(ref = "/fake/shelf.jpg", widthPx = 1280, heightPx = 960)
+        val session = useCase.execute(image, "test_fallback")
+
+        val reasons = session.detectedItems.single().confidence.reasons
+        assertTrue(
+            "items may not be separated" in reasons,
+            "fallback spines must say detection could not separate books: $reasons"
+        )
+    } }
+
+    @Test
     fun `session createdAt is stamped with current time by default`() { runBlocking {
         val useCase = ProcessCapturedImageUseCase(
             imagePreprocessor = PassthroughImagePreprocessor(),

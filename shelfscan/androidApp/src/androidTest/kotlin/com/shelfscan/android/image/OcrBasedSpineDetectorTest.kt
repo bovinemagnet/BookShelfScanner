@@ -109,7 +109,7 @@ class OcrBasedSpineDetectorTest {
         val spines = detector.detectShelfItems(image)
 
         assertEquals(1, spines.size)
-        assertEquals(0.5, spines[0].confidence)
+        assertTrue(spines[0].isWholeImageFallback, "fallback spine must be flagged as such")
         assertEquals("/nonexistent/image.jpg", spines[0].cropRef)
     }
 }

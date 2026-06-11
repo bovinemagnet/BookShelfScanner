@@ -97,7 +97,8 @@ class OcrBasedSpineDetector(
                 image.widthPx.toFloat(),
                 image.heightPx.toFloat()
             ),
-            confidence = 0.5
+            confidence = 0.5,
+            isWholeImageFallback = true
         )
     }
 }

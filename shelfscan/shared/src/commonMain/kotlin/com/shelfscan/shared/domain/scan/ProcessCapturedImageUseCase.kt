@@ -64,6 +64,7 @@ class ProcessCapturedImageUseCase(
                     parserConfidence = parsed.confidence,
                     catalogMatchConfidence = catalogConf,
                     reasons = buildList {
+                        if (spine.isWholeImageFallback) add("items may not be separated")
                         if (ocrConf < 0.5) add("low OCR confidence")
                         if (metadataLookupFailed) {
                             add("metadata lookup failed")
