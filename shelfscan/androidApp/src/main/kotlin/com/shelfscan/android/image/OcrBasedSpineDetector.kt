@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognizer
+import com.shelfscan.android.ocr.MlKitOcrAdapter
 import com.shelfscan.android.ocr.toRecognizedTextBlocks
 import com.shelfscan.shared.core.model.BoundingBox
 import com.shelfscan.shared.core.model.CapturedImage
@@ -14,6 +15,7 @@ import com.shelfscan.shared.core.model.RecognizedTextBlock
 import com.shelfscan.shared.domain.scan.SpineClusteringAlgorithm
 import com.shelfscan.shared.platform.ImagePreprocessor
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import kotlin.coroutines.resume
 
@@ -21,7 +23,8 @@ class OcrBasedSpineDetector(
     private val context: Context,
     private val recogniser: TextRecognizer,
     private val clusterAlgorithm: SpineClusteringAlgorithm = SpineClusteringAlgorithm(),
-    private val bitmapCropper: BitmapCropper = BitmapCropper(context.cacheDir)
+    private val bitmapCropper: BitmapCropper = BitmapCropper(context.cacheDir),
+    private val timeoutMillis: Long = MlKitOcrAdapter.DEFAULT_TIMEOUT_MILLIS
 ) : ImagePreprocessor {
 
     override suspend fun normalizeForOcr(image: CapturedImage): ProcessedImage {
@@ -33,7 +36,10 @@ class OcrBasedSpineDetector(
     }
 
     override suspend fun detectShelfItems(image: CapturedImage): List<DetectedSpine> {
-        val blocks = runOcrOnFullImage(image.ref)
+        // A hung recogniser degrades to the whole-image fallback rather than
+        // freezing the scan indefinitely.
+        val blocks = withTimeoutOrNull(timeoutMillis) { runOcrOnFullImage(image.ref) }
+            ?: emptyList()
 
         if (blocks.isEmpty()) {
             return listOf(wholeImageSpine(image))

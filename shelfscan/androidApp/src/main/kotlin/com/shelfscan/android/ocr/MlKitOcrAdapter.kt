@@ -6,8 +6,11 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognizer
 import com.shelfscan.shared.core.model.OcrResult
 import com.shelfscan.shared.core.model.ProcessedImage
+import com.shelfscan.shared.domain.scan.ScanFailure
 import com.shelfscan.shared.platform.OcrEngine
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -20,9 +23,19 @@ import kotlin.coroutines.resumeWithException
 class MlKitOcrAdapter(
     private val context: Context,
     private val recognizer: TextRecognizer,
+    private val timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
 ) : OcrEngine {
 
-    override suspend fun recognizeText(image: ProcessedImage): OcrResult =
+    override suspend fun recognizeText(image: ProcessedImage): OcrResult = try {
+        withTimeout(timeoutMillis) { recognizeWithMlKit(image) }
+    } catch (e: TimeoutCancellationException) {
+        // Must not escape as-is: it is a CancellationException subtype, and
+        // the pipeline lets cancellation propagate — a hung recogniser would
+        // silently kill the scan instead of reporting an OCR failure.
+        throw ScanFailure.Ocr(e)
+    }
+
+    private suspend fun recognizeWithMlKit(image: ProcessedImage): OcrResult =
         suspendCancellableCoroutine { continuation ->
             val file = File(image.ref)
             if (!file.exists()) {
@@ -45,4 +58,8 @@ class MlKitOcrAdapter(
                     continuation.resumeWithException(exception)
                 }
         }
+
+    companion object {
+        const val DEFAULT_TIMEOUT_MILLIS = 30_000L
+    }
 }

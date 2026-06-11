@@ -93,6 +93,17 @@ class OcrBasedSpineDetectorTest {
     }
 
     @Test
+    fun detectionExceedingTimeoutFallsBackToWholeImageSpine() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val impatientDetector = OcrBasedSpineDetector(context, recognizer, timeoutMillis = 1)
+        val image = CapturedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
+
+        val spines = impatientDetector.detectShelfItems(image)
+
+        assertEquals(1, spines.size, "timeout should degrade to the whole-image fallback")
+    }
+
+    @Test
     fun nonExistentFileFallsBackToWholeImageSpine() = runBlocking {
         val image = CapturedImage(ref = "/nonexistent/image.jpg", widthPx = 640, heightPx = 480)
         val spines = detector.detectShelfItems(image)

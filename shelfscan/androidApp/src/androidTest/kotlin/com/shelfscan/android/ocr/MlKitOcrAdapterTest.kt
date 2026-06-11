@@ -6,11 +6,13 @@ import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.shelfscan.android.test.TestImageLoader
 import com.shelfscan.shared.core.model.ProcessedImage
+import com.shelfscan.shared.domain.scan.ScanFailure
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class MlKitOcrAdapterTest {
@@ -33,6 +35,20 @@ class MlKitOcrAdapterTest {
     fun tearDown() {
         imageLoader.cleanup()
         recognizer.close()
+    }
+
+    @Test
+    fun recognitionExceedingTimeoutSurfacesAsOcrFailure() = runBlocking {
+        // 1 ms is unreachable for a 4000x3000 image — the timeout must fire
+        // and surface as a typed OCR failure, not a CancellationException.
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val impatientAdapter = MlKitOcrAdapter(context, recognizer, timeoutMillis = 1)
+        val image = ProcessedImage(ref = testImagePath, widthPx = 4000, heightPx = 3000)
+
+        assertFailsWith<ScanFailure.Ocr> {
+            impatientAdapter.recognizeText(image)
+        }
+        Unit
     }
 
     @Test
