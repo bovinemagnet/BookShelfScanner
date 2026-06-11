@@ -4,10 +4,14 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>ShelfScan</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>com.shelfscan.ios</string>
     <key>CFBundleName</key>
     <string>ShelfScan</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
     <key>CFBundleVersion</key>

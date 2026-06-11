@@ -4,9 +4,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
+import android.os.Build
 import com.shelfscan.shared.core.geometry.clampToImage
 import com.shelfscan.shared.core.model.BoundingBox
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 
 /**
@@ -46,11 +48,19 @@ class BitmapCropper(private val cacheDir: File) {
     }
 
     private fun decodeRegion(sourceRef: String, region: Rect): Bitmap? {
-        val decoder = BitmapRegionDecoder.newInstance(sourceRef, false)
+        val decoder = createRegionDecoder(sourceRef) ?: return null
         return try {
             decoder.decodeRegion(region, BitmapFactory.Options())
         } finally {
             decoder.recycle()
         }
     }
+
+    private fun createRegionDecoder(sourceRef: String): BitmapRegionDecoder? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            FileInputStream(sourceRef).use { BitmapRegionDecoder.newInstance(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            BitmapRegionDecoder.newInstance(sourceRef, false)
+        }
 }
