@@ -165,6 +165,13 @@ fun ScanScreen(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
+    val isCameraReady by cameraAdapter.isReady.collectAsState()
+
+    // Release the camera when this screen leaves composition — the factory
+    // below starts the preview, so the composable owns the camera lifecycle.
+    DisposableEffect(Unit) {
+        onDispose { cameraAdapter.stopPreview() }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         AndroidView(
@@ -230,12 +237,12 @@ fun ScanScreen(
                             }
                         }
                     },
-                    enabled = !isCapturing,
+                    enabled = !isCapturing && isCameraReady,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp)
                 ) {
-                    Text("Capture")
+                    Text(if (isCameraReady) "Capture" else "Starting camera…")
                 }
             }
         }

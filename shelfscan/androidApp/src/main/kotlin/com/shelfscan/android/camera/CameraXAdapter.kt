@@ -12,6 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.shelfscan.android.image.ScanImageCache
 import com.shelfscan.shared.core.model.CapturedImage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
@@ -21,7 +24,13 @@ class CameraXAdapter(
     private val context: Context,
     private val imageCache: ScanImageCache = ScanImageCache(context.cacheDir)
 ) {
+    private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
+
+    private val _isReady = MutableStateFlow(false)
+
+    /** True once the camera is bound and capture requests can succeed. */
+    val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
     fun startPreview(
         lifecycleOwner: LifecycleOwner,
@@ -29,21 +38,31 @@ class CameraXAdapter(
     ) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+            val provider = cameraProviderFuture.get()
+            cameraProvider = provider
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .build()
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
+            provider.unbindAll()
+            provider.bindToLifecycle(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,
                 preview,
                 imageCapture
             )
+            _isReady.value = true
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    /** Releases the camera. Safe to call before the preview ever started. */
+    fun stopPreview() {
+        _isReady.value = false
+        cameraProvider?.unbindAll()
+        cameraProvider = null
+        imageCapture = null
     }
 
     suspend fun captureImage(): CapturedImage = suspendCancellableCoroutine { continuation ->
