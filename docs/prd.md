@@ -506,8 +506,8 @@ The MVP is successful when a user can:
 ## MVP Constraints
 
 * English only
-* iOS and Android
-* books, DVDs/Blu-rays, and CDs
+* Android first, iOS to follow
+* books only (movies and CDs follow once the scan workflow is proven — see section 20)
 * single image scan with optional future multi-image enhancement
 * cloud-assisted recognition allowed
 
@@ -546,12 +546,13 @@ The MVP is successful when a user can:
 ## Phase 1: MVP
 
 * single shelf image scanning
-* books, movies, CDs
+* books only
 * title and creator extraction
 * review/edit/save/export
 
 ## Phase 2
 
+* expand to movies and CDs
 * multi-photo shelf stitching
 * barcode fallback
 * better duplicate detection
@@ -573,7 +574,7 @@ The MVP is successful when a user can:
 * Which metadata providers will be used for books, movies, and music?
 * Should processing be on-device first, cloud first, or hybrid?
 * Is account creation required for MVP, or should local-only mode be supported?
-* Should the first release focus on books only to improve accuracy before adding movies and CDs?
+* ~~Should the first release focus on books only to improve accuracy before adding movies and CDs?~~ **Resolved: yes — books only** (see section 20; reflected in the MVP constraints and release plan above)
 
 ---
 
