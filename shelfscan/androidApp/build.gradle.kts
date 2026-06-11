@@ -1,6 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
+}
+
+// Static analysis runs in baseline mode: existing findings are recorded in
+// detekt-baseline.xml / ktlint-baseline.xml so only new issues fail the build.
+detekt {
+    buildUponDefaultConfig = true
+    baseline = file("detekt-baseline.xml")
+}
+
+ktlint {
+    baseline = file("ktlint-baseline.xml")
 }
 
 android {
@@ -46,6 +59,12 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Existing issues are recorded in lint-baseline.xml; only new errors fail the build.
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
     }
 
     compileOptions {

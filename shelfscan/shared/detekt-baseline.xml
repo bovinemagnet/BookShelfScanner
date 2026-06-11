@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:ExportCollectionUseCase.kt:ExportCollectionUseCase$contains(',') || contains('"') || contains('\n') || contains('\r')</ID>
+    <ID>CyclomaticComplexMethod:ProcessCapturedImageUseCase.kt:ProcessCapturedImageUseCase$suspend fun execute: ScanSession</ID>
+    <ID>EmptyFunctionBlock:ReviewViewModelTest.kt:ReviewViewModelTest.&lt;no name provided&gt;${}</ID>
+    <ID>LongMethod:ProcessCapturedImageUseCase.kt:ProcessCapturedImageUseCase$suspend fun execute: ScanSession</ID>
+    <ID>LongMethod:ReviewViewModel.kt:ReviewViewModel$@OptIn(ExperimentalUuidApi::class) fun onAction</ID>
+    <ID>MagicNumber:ParseDetectedItemUseCase.kt:ParseDetectedItemUseCase$0.1</ID>
+    <ID>MagicNumber:ParseDetectedItemUseCase.kt:ParseDetectedItemUseCase$0.55</ID>
+    <ID>MagicNumber:ParseDetectedItemUseCase.kt:ParseDetectedItemUseCase$0.7</ID>
+    <ID>MagicNumber:ParseDetectedItemUseCase.kt:ParseDetectedItemUseCase$0.75</ID>
+    <ID>MagicNumber:ParseDetectedItemUseCase.kt:ParseDetectedItemUseCase$0.85</ID>
+    <ID>MagicNumber:Time.ios.kt:1000</ID>
+    <ID>MatchingDeclarationName:BoundingBoxClamping.kt:ClampedRect</ID>
+    <ID>ReturnCount:OpenLibraryMetadataLookupService.kt:OpenLibraryMetadataLookupService$override suspend fun search: List&lt;CatalogMatch&gt;</ID>
+    <ID>ThrowsCount:OpenLibraryMetadataLookupService.kt:OpenLibraryMetadataLookupService$override suspend fun search: List&lt;CatalogMatch&gt;</ID>
+    <ID>TooGenericExceptionCaught:OpenLibraryMetadataLookupService.kt:OpenLibraryMetadataLookupService$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ProcessCapturedImageUseCase.kt:ProcessCapturedImageUseCase$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ReviewViewModel.kt:ReviewViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ScanViewModel.kt:ScanViewModel$e: Throwable</ID>
+    <ID>TooGenericExceptionThrown:IntegrationTestFixtures.kt:ConfigurableFakeOcrEngine$throw RuntimeException("OCR engine failure")</ID>
+    <ID>TooGenericExceptionThrown:ProcessCapturedImageUseCaseTest.kt:ProcessCapturedImageUseCaseTest.&lt;no name provided&gt;$throw RuntimeException("upstream went down")</ID>
+    <ID>TooGenericExceptionThrown:ScanViewModelIntegrationTest.kt:ScanViewModelIntegrationTest.&lt;no name provided&gt;$throw RuntimeException("disk full")</ID>
+    <ID>TooGenericExceptionThrown:ScanViewModelIntegrationTest.kt:ScanViewModelIntegrationTest.&lt;no name provided&gt;$throw RuntimeException("upstream went down")</ID>
+    <ID>WildcardImport:ExportCollectionUseCaseTest.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:IntegrationTestFixtures.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ProcessCapturedImageUseCase.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ReviewViewModel.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ReviewViewModelTest.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ScanPipelineIntegrationTest.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ScanToCollectionIntegrationTest.kt:import com.shelfscan.shared.core.model.*</ID>
+    <ID>WildcardImport:ScanViewModel.kt:import com.shelfscan.shared.core.model.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

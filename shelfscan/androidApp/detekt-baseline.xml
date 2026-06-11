@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ReviewScreen.kt:@Composable fun ReviewScreen</ID>
+    <ID>FunctionNaming:MainActivity.kt:@Composable fun HomeScreen</ID>
+    <ID>FunctionNaming:MainActivity.kt:@Composable fun PermissionScreen</ID>
+    <ID>FunctionNaming:MainActivity.kt:@Composable fun ScanScreen</ID>
+    <ID>FunctionNaming:MainActivity.kt:@Composable fun ShelfScanApp</ID>
+    <ID>FunctionNaming:ReviewScreen.kt:@Composable fun ReviewScreen</ID>
+    <ID>FunctionNaming:ReviewScreen.kt:@Composable private fun EditItemForm</ID>
+    <ID>LongMethod:MainActivity.kt:@Composable fun ScanScreen</ID>
+    <ID>LongMethod:ReviewScreen.kt:@Composable fun ReviewScreen</ID>
+    <ID>MagicNumber:BitmapCropper.kt:BitmapCropper$90</ID>
+    <ID>MagicNumber:ShelfScanApplication.kt:ShelfScanApplication$5_000</ID>
+    <ID>MaxLineLength:ReviewScreen.kt:Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.review_delete))</ID>
+    <ID>MaxLineLength:ReviewScreen.kt:Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.review_edit))</ID>
+    <ID>ReturnCount:OcrBasedSpineDetector.kt:OcrBasedSpineDetector$override suspend fun detectShelfItems: List&lt;DetectedSpine&gt;</ID>
+    <ID>SwallowedException:OcrBasedSpineDetector.kt:OcrBasedSpineDetector$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MlKitOcrAdapter.kt:MlKitOcrAdapter$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:OcrBasedSpineDetector.kt:OcrBasedSpineDetector$e: Exception</ID>
+    <ID>WildcardImport:MainActivity.kt:import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:MainActivity.kt:import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:MainActivity.kt:import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:ReviewScreen.kt:import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:ReviewScreen.kt:import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:ReviewScreen.kt:import androidx.compose.runtime.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
