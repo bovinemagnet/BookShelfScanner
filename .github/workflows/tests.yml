@@ -5,6 +5,9 @@ on:
     branches:
       - main
   pull_request:
+    # `labeled` lets the run-instrumented-tests label trigger the
+    # instrumented-test job on a PR (see that job's `if` below).
+    types: [opened, synchronize, reopened, labeled]
 
 permissions:
   contents: read
@@ -46,8 +49,8 @@ jobs:
             shelfscan/androidApp/build/reports/lint-results-*.html
           retention-days: 14
 
-  shared-unit-tests:
-    name: Shared module unit tests (JVM)
+  unit-tests:
+    name: Unit tests (shared JVM + androidApp)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -65,25 +68,28 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x shelfscan/gradlew
 
-      - name: Run shared unit tests
+      - name: Run shared and androidApp unit tests
         working-directory: shelfscan
-        run: ./gradlew :shared:jvmTest --no-daemon
+        run: ./gradlew :shared:jvmTest :androidApp:testDebugUnitTest --no-daemon
 
-      - name: Upload shared test reports
+      - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shared-test-reports
-          path: shelfscan/shared/build/reports/tests/
+          name: unit-test-reports
+          path: |
+            shelfscan/shared/build/reports/tests/
+            shelfscan/androidApp/build/reports/tests/
           retention-days: 14
 
   instrumented-tests:
     name: Android instrumented tests
     # macOS runners support HW-accelerated x86_64 emulators.
     # Limited to push-to-main to keep macOS minute usage in check;
-    # PRs that touch androidApp/ should be smoke-tested locally,
-    # or this job can be enabled per-PR by adding a label trigger.
-    if: github.event_name == 'push'
+    # on PRs the job is opt-in via the run-instrumented-tests label.
+    if: >-
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'run-instrumented-tests')
     runs-on: macos-latest
     steps:
       - name: Checkout repository
