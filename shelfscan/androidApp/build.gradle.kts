@@ -89,6 +89,12 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
+    // JVM unit tests
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+
     // Android instrumented tests
     androidTestImplementation(libs.kotlin.test)
     androidTestImplementation(libs.kotlin.test.junit)
