@@ -327,8 +327,8 @@
         <error line="137" column="22" source="standard:multiline-expression-wrapping" />
         <error line="148" column="83" source="standard:multiline-expression-wrapping" />
         <error line="148" column="83" source="standard:function-signature" />
-        <error line="157" column="74" source="standard:multiline-expression-wrapping" />
-        <error line="157" column="74" source="standard:function-signature" />
+        <error line="157" column="81" source="standard:multiline-expression-wrapping" />
+        <error line="157" column="81" source="standard:function-signature" />
         <error line="160" column="20" source="standard:multiline-expression-wrapping" />
         <error line="160" column="20" source="standard:string-template-indent" />
         <error line="166" column="9" source="standard:string-template-indent" />
