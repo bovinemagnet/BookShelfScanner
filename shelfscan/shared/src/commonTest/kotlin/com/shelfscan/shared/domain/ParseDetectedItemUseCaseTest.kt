@@ -19,7 +19,7 @@ class ParseDetectedItemUseCaseTest {
     }
 
     @Test
-    fun `treats line containing an initial as author, not title`() {
+    fun `treats line containing an initial as author rather than title`() {
         // "Robert C. Martin" was previously chosen as title because it was longest.
         // Real bookshelves: an initial like "C." is a strong author signal.
         val blocks = listOf(

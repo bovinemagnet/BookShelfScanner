@@ -210,7 +210,7 @@ class ScanViewModelIntegrationTest {
     }
 
     @Test
-    fun `unrecognised failure maps to Unknown error, not OcrFailed`() {
+    fun `unrecognised failure maps to Unknown error rather than OcrFailed`() {
         val error = IllegalStateException("boom").toScanError()
 
         assertEquals(ScanError.Unknown("boom"), error)

@@ -154,7 +154,7 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
-    fun `score reflects similarity to query title, not API position`() = runTest {
+    fun `score reflects similarity to query title rather than API position`() = runTest {
         // Three docs returned in API order. The closest token match to "Clean Code"
         // is the second doc, not the first — score must reflect that.
         val body = """
