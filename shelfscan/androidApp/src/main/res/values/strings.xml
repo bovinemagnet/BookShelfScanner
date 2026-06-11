@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShelfScan</string>
+
+    <!-- Home screen -->
+    <string name="home_tagline">Take a photo of a shelf to catalogue your books.</string>
+    <string name="home_scan_button">Scan a Shelf</string>
+
+    <!-- Scan screen -->
+    <string name="scan_processing">Processing…</string>
+    <string name="scan_retry">Retry</string>
+    <string name="scan_capture">Capture</string>
+    <string name="scan_camera_starting">Starting camera…</string>
+
+    <!-- Permission screen -->
+    <string name="permission_title">Camera Permission Required</string>
+    <string name="permission_rationale">ShelfScan needs camera access to scan your shelf.</string>
+    <string name="permission_grant">Grant Permission</string>
+
+    <!-- Scan errors (full-sentence variants) -->
+    <string name="error_scan_ocr">Couldn\'t read text on the spines. Try again with brighter, steadier light.</string>
+    <string name="error_scan_metadata">Couldn\'t reach the catalogue. Check your connection and retry.</string>
+    <string name="error_scan_save">Couldn\'t save the scan. Please try again.</string>
+    <string name="error_scan_image_processing">Couldn\'t process the photo. Please retake it.</string>
+    <string name="error_scan_camera_unavailable">The camera is unavailable on this device.</string>
+    <string name="error_scan_permission_denied">Camera permission is required to scan a shelf.</string>
+    <string name="error_scan_too_blurry">The photo was too blurry. Please retake it.</string>
+    <string name="error_scan_unknown">Something went wrong. Please try again.</string>
+    <string name="error_scan_generic">Scan failed. Please try again.</string>
+
+    <!-- Review screen -->
+    <string name="review_title">Review Results</string>
+    <string name="review_empty">No items detected. Try scanning again.</string>
+    <string name="review_item_count">%1$d item(s) detected</string>
+    <string name="review_add_item">Add Missing Item</string>
+    <string name="review_edit">Edit</string>
+    <string name="review_delete">Delete</string>
+    <string name="review_unknown_title">Unknown Title</string>
+    <string name="review_raw_text">Raw: %1$s</string>
+    <string name="review_saved">Saved!</string>
+    <string name="review_back_home">Back to Home</string>
+    <string name="review_saving">Saving…</string>
+    <string name="review_save">Save</string>
+    <string name="review_approve_all">Approve All</string>
+    <string name="review_discard">Discard</string>
+    <string name="review_discard_title">Discard scan?</string>
+    <string name="review_discard_message">This removes all %1$d detected items. You can\'t undo this.</string>
+    <string name="review_cancel">Cancel</string>
+
+    <!-- Edit form -->
+    <string name="edit_title_label">Title</string>
+    <string name="edit_creator_label">Creator</string>
+    <string name="edit_type_label">Type</string>
+
+    <!-- Review errors (short variants) -->
+    <string name="error_review_save">Couldn\'t save the collection. Please try again.</string>
+    <string name="error_review_metadata">Couldn\'t look up book details right now.</string>
+    <string name="error_review_ocr">Couldn\'t read text on the spines.</string>
+    <string name="error_review_image_processing">Couldn\'t process the photo.</string>
+    <string name="error_review_camera_unavailable">Camera unavailable.</string>
+    <string name="error_review_permission">Camera permission required.</string>
+    <string name="error_review_blurry">Photo was too blurry.</string>
+    <string name="error_review_unknown">Something went wrong. Please try again.</string>
+</resources>

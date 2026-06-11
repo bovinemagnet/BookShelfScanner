@@ -13,7 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.shelfscan.android.R
 import com.shelfscan.shared.core.model.ConfidenceBand
 import com.shelfscan.shared.core.model.ItemSource
 import com.shelfscan.shared.core.model.MediaItem
@@ -42,11 +44,11 @@ fun ReviewScreen(
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        Text("Review Results", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.review_title), style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
 
         if (reviewState.items.isEmpty()) {
-            Text("No items detected. Try scanning again.")
+            Text(stringResource(R.string.review_empty))
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -54,15 +56,16 @@ fun ReviewScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "${reviewState.items.size} item(s) detected",
+                    stringResource(R.string.review_item_count, reviewState.items.size),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 OutlinedButton(
                     onClick = { reviewViewModel.onAction(ReviewAction.AddItem) }
                 ) {
+                    // Decorative: the button label already names the action.
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Add Missing Item")
+                    Text(stringResource(R.string.review_add_item))
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -96,7 +99,7 @@ fun ReviewScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = item.title ?: "Unknown Title",
+                                    text = item.title ?: stringResource(R.string.review_unknown_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -105,12 +108,12 @@ fun ReviewScreen(
                                         onClick = { reviewViewModel.onAction(ReviewAction.StartEditing(item.id)) },
                                         enabled = reviewState.editingItemId == null || isEditing
                                     ) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.review_edit))
                                     }
                                     IconButton(
                                         onClick = { reviewViewModel.onAction(ReviewAction.DeleteItem(item.id)) }
                                     ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.review_delete))
                                     }
                                 }
                             }
@@ -143,7 +146,10 @@ fun ReviewScreen(
                                     }
                                     if (item.rawText.isNotEmpty()) {
                                         Text(
-                                            text = "Raw: ${item.rawText.joinToString(" | ")}",
+                                            text = stringResource(
+                                                R.string.review_raw_text,
+                                                item.rawText.joinToString(" | ")
+                                            ),
                                             style = MaterialTheme.typography.bodySmall,
                                             maxLines = 2
                                         )
@@ -169,10 +175,10 @@ fun ReviewScreen(
 
         when {
             reviewState.savedToCollection -> {
-                Text("Saved!", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.review_saved), style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-                    Text("Back to Home")
+                    Text(stringResource(R.string.review_back_home))
                 }
             }
             reviewState.isLoading -> {
@@ -183,7 +189,7 @@ fun ReviewScreen(
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Saving…")
+                    Text(stringResource(R.string.review_saving))
                 }
             }
             else -> {
@@ -204,30 +210,32 @@ fun ReviewScreen(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.review_save))
                     }
                     FilledTonalButton(
                         onClick = { reviewViewModel.onAction(ReviewAction.ApproveAll) },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Approve All")
+                        Text(stringResource(R.string.review_approve_all))
                     }
                     OutlinedButton(
                         onClick = { showDiscardConfirm = true },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Discard")
+                        Text(stringResource(R.string.review_discard))
                     }
                 }
 
                 if (showDiscardConfirm) {
                     AlertDialog(
                         onDismissRequest = { showDiscardConfirm = false },
-                        title = { Text("Discard scan?") },
+                        title = { Text(stringResource(R.string.review_discard_title)) },
                         text = {
                             Text(
-                                "This removes all ${reviewState.items.size} detected " +
-                                    "items. You can't undo this."
+                                stringResource(
+                                    R.string.review_discard_message,
+                                    reviewState.items.size
+                                )
                             )
                         },
                         confirmButton = {
@@ -236,12 +244,15 @@ fun ReviewScreen(
                                 reviewViewModel.onAction(ReviewAction.DiscardAll)
                                 onDone()
                             }) {
-                                Text("Discard", color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    stringResource(R.string.review_discard),
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showDiscardConfirm = false }) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.review_cancel))
                             }
                         }
                     )
@@ -251,16 +262,19 @@ fun ReviewScreen(
     }
 }
 
-private fun reviewErrorMessage(error: ScanError): String = when (error) {
-    ScanError.SaveFailed -> "Couldn't save the collection. Please try again."
-    ScanError.MetadataLookupFailed -> "Couldn't look up book details right now."
-    ScanError.OcrFailed -> "Couldn't read text on the spines."
-    ScanError.ImageProcessingFailed -> "Couldn't process the photo."
-    ScanError.CameraUnavailable -> "Camera unavailable."
-    ScanError.PermissionDenied -> "Camera permission required."
-    ScanError.ImageTooBlurry -> "Photo was too blurry."
-    is ScanError.Unknown -> "Something went wrong. Please try again."
-}
+@Composable
+private fun reviewErrorMessage(error: ScanError): String = stringResource(
+    when (error) {
+        ScanError.SaveFailed -> R.string.error_review_save
+        ScanError.MetadataLookupFailed -> R.string.error_review_metadata
+        ScanError.OcrFailed -> R.string.error_review_ocr
+        ScanError.ImageProcessingFailed -> R.string.error_review_image_processing
+        ScanError.CameraUnavailable -> R.string.error_review_camera_unavailable
+        ScanError.PermissionDenied -> R.string.error_review_permission
+        ScanError.ImageTooBlurry -> R.string.error_review_blurry
+        is ScanError.Unknown -> R.string.error_review_unknown
+    }
+)
 
 @Composable
 private fun EditItemForm(
@@ -276,7 +290,7 @@ private fun EditItemForm(
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title") },
+            label = { Text(stringResource(R.string.edit_title_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -284,13 +298,13 @@ private fun EditItemForm(
         OutlinedTextField(
             value = creator,
             onValueChange = { creator = it },
-            label = { Text("Creator") },
+            label = { Text(stringResource(R.string.edit_creator_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text("Type", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.edit_type_label), style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MediaType.entries.forEach { type ->
                 FilterChip(
@@ -315,10 +329,10 @@ private fun EditItemForm(
                     )
                 }
             ) {
-                Text("Save")
+                Text(stringResource(R.string.review_save))
             }
             TextButton(onClick = onCancel) {
-                Text("Cancel")
+                Text(stringResource(R.string.review_cancel))
             }
         }
     }

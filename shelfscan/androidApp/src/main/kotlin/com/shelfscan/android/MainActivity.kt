@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.camera.view.PreviewView
@@ -144,15 +145,15 @@ fun HomeScreen(onStartScan: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("ShelfScan", style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "Take a photo of a shelf to catalogue your books.",
+            stringResource(R.string.home_tagline),
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onStartScan, modifier = Modifier.fillMaxWidth()) {
-            Text("Scan a Shelf")
+            Text(stringResource(R.string.home_scan_button))
         }
     }
 }
@@ -196,7 +197,7 @@ fun ScanScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Processing...")
+                        Text(stringResource(R.string.scan_processing))
                     }
                 }
             }
@@ -213,7 +214,7 @@ fun ScanScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { scanViewModel.onAction(ScanAction.RetryCapture) }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.scan_retry))
                     }
                 }
             }
@@ -242,24 +243,31 @@ fun ScanScreen(
                         .fillMaxWidth()
                         .padding(24.dp)
                 ) {
-                    Text(if (isCameraReady) "Capture" else "Starting camera…")
+                    Text(
+                        stringResource(
+                            if (isCameraReady) R.string.scan_capture else R.string.scan_camera_starting
+                        )
+                    )
                 }
             }
         }
     }
 }
 
-private fun scanFailureMessage(error: ScanError?): String = when (error) {
-    ScanError.OcrFailed -> "Couldn't read text on the spines. Try again with brighter, steadier light."
-    ScanError.MetadataLookupFailed -> "Couldn't reach the catalogue. Check your connection and retry."
-    ScanError.SaveFailed -> "Couldn't save the scan. Please try again."
-    ScanError.ImageProcessingFailed -> "Couldn't process the photo. Please retake it."
-    ScanError.CameraUnavailable -> "The camera is unavailable on this device."
-    ScanError.PermissionDenied -> "Camera permission is required to scan a shelf."
-    ScanError.ImageTooBlurry -> "The photo was too blurry. Please retake it."
-    is ScanError.Unknown -> "Something went wrong. Please try again."
-    null -> "Scan failed. Please try again."
-}
+@Composable
+private fun scanFailureMessage(error: ScanError?): String = stringResource(
+    when (error) {
+        ScanError.OcrFailed -> R.string.error_scan_ocr
+        ScanError.MetadataLookupFailed -> R.string.error_scan_metadata
+        ScanError.SaveFailed -> R.string.error_scan_save
+        ScanError.ImageProcessingFailed -> R.string.error_scan_image_processing
+        ScanError.CameraUnavailable -> R.string.error_scan_camera_unavailable
+        ScanError.PermissionDenied -> R.string.error_scan_permission_denied
+        ScanError.ImageTooBlurry -> R.string.error_scan_too_blurry
+        is ScanError.Unknown -> R.string.error_scan_unknown
+        null -> R.string.error_scan_generic
+    }
+)
 
 @Composable
 fun PermissionScreen(onRequestPermission: () -> Unit) {
@@ -270,15 +278,15 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Camera Permission Required", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.permission_title), style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "ShelfScan needs camera access to scan your shelf.",
+            stringResource(R.string.permission_rationale),
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) {
-            Text("Grant Permission")
+            Text(stringResource(R.string.permission_grant))
         }
     }
 }
