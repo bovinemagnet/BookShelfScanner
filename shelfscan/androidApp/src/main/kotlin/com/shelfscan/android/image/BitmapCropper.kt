@@ -18,7 +18,10 @@ import java.io.FileOutputStream
  * in memory — a 4000×3000 source image cropped to a 200×3000 spine costs
  * ~2.4 MB rather than the ~48 MB that a full `decodeFile` would.
  */
-class BitmapCropper(private val cacheDir: File) {
+class BitmapCropper(
+    cacheDir: File,
+    private val imageCache: ScanImageCache = ScanImageCache(cacheDir)
+) {
 
     fun cropAndSave(sourceRef: String, box: BoundingBox, id: String): String {
         val (sourceWidth, sourceHeight) = readImageSize(sourceRef)
@@ -29,7 +32,7 @@ class BitmapCropper(private val cacheDir: File) {
         val cropped = decodeRegion(sourceRef, regionRect)
             ?: throw IllegalArgumentException("Cannot decode region of image: $sourceRef")
 
-        val outputFile = File(cacheDir, "spine_${id}_${System.currentTimeMillis()}.jpg")
+        val outputFile = imageCache.newSpineFile(id)
         FileOutputStream(outputFile).use { out ->
             cropped.compress(Bitmap.CompressFormat.JPEG, 90, out)
         }

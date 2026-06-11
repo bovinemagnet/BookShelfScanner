@@ -19,7 +19,9 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.shelfscan.android.camera.CameraXAdapter
+import com.shelfscan.android.image.ScanImageCache
 import com.shelfscan.android.ui.ReviewScreen
 import com.shelfscan.android.viewmodel.AndroidReviewViewModel
 import com.shelfscan.android.viewmodel.AndroidScanViewModel
@@ -30,6 +32,7 @@ import com.shelfscan.shared.feature.review.ReviewViewModel
 import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
@@ -53,6 +56,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         cameraAdapter = CameraXAdapter(this)
+        val scanImageCache = ScanImageCache(cacheDir)
 
         mainViewModel.cameraPermissionGranted = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
@@ -69,7 +73,10 @@ class MainActivity : ComponentActivity() {
                     onRequestPermission = { requestPermission.launch(Manifest.permission.CAMERA) },
                     cameraAdapter = cameraAdapter,
                     scanViewModel = androidScanViewModel.shared,
-                    reviewViewModel = androidReviewViewModel.shared
+                    reviewViewModel = androidReviewViewModel.shared,
+                    onScanFlowFinished = {
+                        lifecycleScope.launch(Dispatchers.IO) { scanImageCache.sweep() }
+                    }
                 )
             }
         }
@@ -84,7 +91,8 @@ fun ShelfScanApp(
     onRequestPermission: () -> Unit,
     cameraAdapter: CameraXAdapter,
     scanViewModel: ScanViewModel,
-    reviewViewModel: ReviewViewModel
+    reviewViewModel: ReviewViewModel,
+    onScanFlowFinished: () -> Unit = {}
 ) {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.HOME) }
     val scanState by scanViewModel.state.collectAsState()
@@ -121,6 +129,9 @@ fun ShelfScanApp(
             onDone = {
                 scanViewModel.onAction(ScanAction.CancelScan)
                 currentScreen = Screen.HOME
+                // The session is saved (or discarded) by now — its cached
+                // capture and crop images are no longer needed.
+                onScanFlowFinished()
             }
         )
     }

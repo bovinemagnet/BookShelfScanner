@@ -10,13 +10,17 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.shelfscan.android.image.ScanImageCache
 import com.shelfscan.shared.core.model.CapturedImage
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class CameraXAdapter(private val context: Context) {
+class CameraXAdapter(
+    private val context: Context,
+    private val imageCache: ScanImageCache = ScanImageCache(context.cacheDir)
+) {
     private var imageCapture: ImageCapture? = null
 
     fun startPreview(
@@ -47,7 +51,7 @@ class CameraXAdapter(private val context: Context) {
             continuation.resumeWithException(IllegalStateException("Camera not started"))
             return@suspendCancellableCoroutine
         }
-        val outputFile = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg")
+        val outputFile = imageCache.newCaptureFile()
         val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
         capture.takePicture(
             outputOptions,

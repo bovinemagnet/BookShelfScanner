@@ -5,6 +5,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.shelfscan.android.image.OcrBasedSpineDetector
+import com.shelfscan.android.image.ScanImageCache
 import com.shelfscan.android.ocr.MlKitOcrAdapter
 import com.shelfscan.shared.data.metadata.OpenLibraryMetadataLookupService
 import com.shelfscan.shared.data.repository.DefaultCollectionRepository
@@ -42,6 +43,11 @@ class ShelfScanApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Reclaim scan images a previous (possibly killed) process left behind.
+        Thread { ScanImageCache(cacheDir).sweep() }.apply {
+            isDaemon = true
+            start()
+        }
         httpClient = HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
