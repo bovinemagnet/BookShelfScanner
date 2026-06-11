@@ -61,6 +61,13 @@ class ExportCollectionUseCaseTest {
     }
 
     @Test
+    fun `csv escapes carriage returns in fields`() {
+        val item = makeItem(title = "Hello\rWorld")
+        val csv = useCase.execute(listOf(item))
+        assertContains(csv, "\"Hello\rWorld\"")
+    }
+
+    @Test
     fun `csv handles null title`() {
         val item = makeItem(title = null, creator = null)
         val csv = useCase.execute(listOf(item))

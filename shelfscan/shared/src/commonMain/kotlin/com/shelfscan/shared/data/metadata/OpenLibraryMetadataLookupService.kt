@@ -11,8 +11,18 @@ import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+/**
+ * Thrown when a catalogue lookup fails (network, server, or parse error) —
+ * distinct from an empty result, which means "no matches found".
+ */
+class MetadataLookupException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)
 
 /**
  * Looks up books in the Open Library API.
@@ -41,6 +51,8 @@ class OpenLibraryMetadataLookupService(
         val creatorQ = creatorName?.trim().orEmpty()
         if (titleQ.isEmpty() && creatorQ.isEmpty()) return emptyList()
 
+        // Failures throw MetadataLookupException so callers can tell "the
+        // lookup broke" apart from "no matches found" (an empty list).
         val response: HttpResponse = try {
             client.get("$baseUrl/search.json") {
                 header(HttpHeaders.UserAgent, userAgent)
@@ -48,17 +60,26 @@ class OpenLibraryMetadataLookupService(
                 if (creatorQ.isNotEmpty()) url.parameters.append("author", creatorQ)
                 url.parameters.append("limit", resultLimit.toString())
             }
+        } catch (e: CancellationException) {
+            // Ktor timeouts can surface as CancellationException subtypes;
+            // only genuine coroutine cancellation may propagate as-is.
+            currentCoroutineContext().ensureActive()
+            throw MetadataLookupException("Lookup request did not complete", e)
         } catch (e: Throwable) {
-            // Network failure, timeout, host unreachable — degrade gracefully.
-            return emptyList()
+            throw MetadataLookupException("Lookup request failed", e)
         }
 
-        if (!response.status.isSuccess()) return emptyList()
+        if (!response.status.isSuccess()) {
+            throw MetadataLookupException("Lookup returned HTTP ${response.status.value}")
+        }
 
         val payload: OpenLibrarySearchResponse = try {
             response.body()
+        } catch (e: CancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw MetadataLookupException("Lookup response could not be read", e)
         } catch (e: Throwable) {
-            return emptyList()
+            throw MetadataLookupException("Lookup response could not be parsed", e)
         }
 
         return payload.docs.map { doc ->

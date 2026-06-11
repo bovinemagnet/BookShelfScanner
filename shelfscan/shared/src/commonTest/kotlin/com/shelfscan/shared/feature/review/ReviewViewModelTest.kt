@@ -2,6 +2,8 @@ package com.shelfscan.shared.feature.review
 
 import com.shelfscan.shared.core.model.*
 import com.shelfscan.shared.data.repository.CollectionRepository
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -166,17 +168,46 @@ class ReviewViewModelTest {
     // --- Approve all tests ---
 
     @Test
-    fun `approve all sets every item source to USER_EDITED`() {
+    fun `approve all preserves item provenance`() {
         loadItems(
             makeItem(id = "item1", source = ItemSource.OCR_ONLY),
             makeItem(id = "item2", source = ItemSource.CATALOG_MATCHED),
             makeItem(id = "item3", source = ItemSource.USER_EDITED)
         )
+        viewModel.onAction(ReviewAction.StartEditing("item1"))
 
         viewModel.onAction(ReviewAction.ApproveAll)
 
-        val items = viewModel.state.value.items
-        assertTrue(items.all { it.source == ItemSource.USER_EDITED })
+        val state = viewModel.state.value
+        assertEquals(ItemSource.OCR_ONLY, state.items[0].source)
+        assertEquals(ItemSource.CATALOG_MATCHED, state.items[1].source)
+        assertEquals(ItemSource.USER_EDITED, state.items[2].source)
+        assertNull(state.editingItemId)
+    }
+
+    // --- Save tests ---
+
+    @Test
+    fun `cancelling a save does not surface SaveFailed`() {
+        val hangingRepository = object : CollectionRepository {
+            override suspend fun saveCollection(collection: com.shelfscan.shared.core.model.Collection): Unit =
+                awaitCancellation()
+            override suspend fun getCollection(id: String): com.shelfscan.shared.core.model.Collection? = null
+            override suspend fun saveItems(collectionId: String, items: List<MediaItem>) {}
+            override suspend fun getCollectionItems(collectionId: String): List<MediaItem> = emptyList()
+            override suspend fun getAllCollections(): List<com.shelfscan.shared.core.model.Collection> = emptyList()
+        }
+        val scope = TestScope()
+        val viewModel = ReviewViewModel(collectionRepository = hangingRepository, scope = scope)
+
+        viewModel.onAction(ReviewAction.LoadSession(makeSession(makeItem())))
+        viewModel.onAction(ReviewAction.SaveToCollection("c1", "My Books"))
+        scope.testScheduler.runCurrent()
+
+        scope.cancel()
+        scope.testScheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.error, "cancellation must not be reported as SaveFailed")
     }
 }
 

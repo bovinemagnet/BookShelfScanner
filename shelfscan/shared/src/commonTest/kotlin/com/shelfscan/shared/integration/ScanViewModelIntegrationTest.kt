@@ -1,7 +1,10 @@
 package com.shelfscan.shared.integration
 
 import com.shelfscan.shared.core.model.CatalogMatch
+import com.shelfscan.shared.core.model.ItemSource
 import com.shelfscan.shared.core.model.MediaType
+import com.shelfscan.shared.core.model.OcrResult
+import com.shelfscan.shared.core.model.ProcessedImage
 import com.shelfscan.shared.core.model.ScanError
 import com.shelfscan.shared.core.model.ScanSession
 import com.shelfscan.shared.core.model.ScanStatus
@@ -11,9 +14,13 @@ import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import com.shelfscan.shared.feature.scan.ScanAction
 import com.shelfscan.shared.feature.scan.ScanState
 import com.shelfscan.shared.feature.scan.ScanViewModel
+import com.shelfscan.shared.feature.scan.toScanError
 import com.shelfscan.shared.platform.MetadataLookupService
 import com.shelfscan.shared.platform.NoOpMetadataLookupService
+import com.shelfscan.shared.platform.OcrEngine
 import com.shelfscan.shared.platform.PassthroughImagePreprocessor
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -84,6 +91,33 @@ class ScanViewModelIntegrationTest {
     }
 
     @Test
+    fun `scanning the same image twice creates two distinct sessions`() {
+        val scope = TestScope()
+        val repository = DefaultScanRepository()
+        val useCase = ProcessCapturedImageUseCase(
+            imagePreprocessor = PassthroughImagePreprocessor(),
+            ocrEngine = ConfigurableFakeOcrEngine(defaultResult = ocrResultFor("The Great Gatsby")),
+            metadataLookupService = NoOpMetadataLookupService(),
+            scanRepository = repository
+        )
+        val viewModel = ScanViewModel(processImage = useCase, scope = scope)
+
+        viewModel.onAction(ScanAction.CaptureImage(testImage))
+        scope.advanceUntilIdle()
+        val firstId = viewModel.state.value.session!!.id
+
+        viewModel.onAction(ScanAction.RetryCapture)
+        viewModel.onAction(ScanAction.CaptureImage(testImage))
+        scope.advanceUntilIdle()
+        val secondId = viewModel.state.value.session!!.id
+
+        kotlinx.coroutines.runBlocking {
+            assertEquals(2, repository.getAllSessions().size, "second scan must not overwrite the first")
+        }
+        assertFalse(firstId == secondId, "session IDs must be unique per scan")
+    }
+
+    @Test
     fun `OCR failure maps to OcrFailed error`() {
         val (viewModel, scope) = createViewModel(
             ocrEngine = ConfigurableFakeOcrEngine(shouldThrow = true)
@@ -100,7 +134,7 @@ class ScanViewModelIntegrationTest {
     }
 
     @Test
-    fun `metadata failure maps to MetadataLookupFailed error`() {
+    fun `metadata failure degrades items to OCR_ONLY instead of failing the scan`() {
         val scope = TestScope()
         val throwingMetadata = object : MetadataLookupService {
             override suspend fun search(
@@ -120,7 +154,10 @@ class ScanViewModelIntegrationTest {
         viewModel.onAction(ScanAction.CaptureImage(testImage))
         scope.advanceUntilIdle()
 
-        assertEquals(ScanError.MetadataLookupFailed, viewModel.state.value.error)
+        val state = viewModel.state.value
+        assertEquals(ScanStatus.COMPLETE, state.status)
+        assertNull(state.error)
+        assertEquals(ItemSource.OCR_ONLY, state.session!!.detectedItems.first().source)
     }
 
     @Test
@@ -144,6 +181,39 @@ class ScanViewModelIntegrationTest {
         scope.advanceUntilIdle()
 
         assertEquals(ScanError.SaveFailed, viewModel.state.value.error)
+    }
+
+    @Test
+    fun `cancelling the scan scope does not surface an error state`() {
+        val scope = TestScope()
+        val hangingEngine = object : OcrEngine {
+            override suspend fun recognizeText(image: ProcessedImage): OcrResult =
+                awaitCancellation()
+        }
+        val useCase = ProcessCapturedImageUseCase(
+            imagePreprocessor = PassthroughImagePreprocessor(),
+            ocrEngine = hangingEngine,
+            metadataLookupService = NoOpMetadataLookupService(),
+            scanRepository = DefaultScanRepository()
+        )
+        val viewModel = ScanViewModel(processImage = useCase, scope = scope)
+
+        viewModel.onAction(ScanAction.CaptureImage(testImage))
+        scope.testScheduler.runCurrent()
+        assertEquals(ScanStatus.PROCESSING, viewModel.state.value.status)
+
+        scope.cancel()
+        scope.testScheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.error, "cancellation must not be reported as a failure")
+        assertFalse(viewModel.state.value.status == ScanStatus.FAILED)
+    }
+
+    @Test
+    fun `unrecognised failure maps to Unknown error, not OcrFailed`() {
+        val error = IllegalStateException("boom").toScanError()
+
+        assertEquals(ScanError.Unknown("boom"), error)
     }
 
     @Test

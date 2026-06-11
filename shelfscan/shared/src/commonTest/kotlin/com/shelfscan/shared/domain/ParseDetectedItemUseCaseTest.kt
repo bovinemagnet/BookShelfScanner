@@ -33,6 +33,22 @@ class ParseDetectedItemUseCaseTest {
     }
 
     @Test
+    fun `parse result is independent of the order the OCR engine returns blocks`() {
+        // No initials and two plausible creator lines: without an explicit
+        // spatial sort, the creator fallback depends on engine block order.
+        val title = RecognizedTextBlock("WAR AND PEACE", 0.9f, BoundingBox(0f, 0f, 200f, 80f))
+        val upperLine = RecognizedTextBlock("leo tolstoy", 0.9f, BoundingBox(0f, 100f, 200f, 130f))
+        val lowerLine = RecognizedTextBlock("penguin classics", 0.9f, BoundingBox(0f, 200f, 200f, 230f))
+
+        val ordered = useCase.execute(listOf(title, upperLine, lowerLine))
+        val shuffled = useCase.execute(listOf(lowerLine, upperLine, title))
+
+        assertEquals(ordered.titleCandidate, shuffled.titleCandidate)
+        assertEquals(ordered.creatorCandidate, shuffled.creatorCandidate)
+        assertEquals("leo tolstoy", shuffled.creatorCandidate, "the line nearest the title should win")
+    }
+
+    @Test
     fun `picks line with largest bounding box as title when boxes are available`() {
         // Title text is normally set in a larger font than the author byline.
         val blocks = listOf(

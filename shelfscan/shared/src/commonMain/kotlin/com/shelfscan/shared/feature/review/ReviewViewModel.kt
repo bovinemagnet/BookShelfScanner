@@ -5,6 +5,7 @@ import com.shelfscan.shared.data.repository.CollectionRepository
 import com.shelfscan.shared.domain.export.ExportCollectionUseCase
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -88,8 +89,9 @@ class ReviewViewModel(
                 _state.value = _state.value.copy(editingItemId = null)
             }
             is ReviewAction.ApproveAll -> {
-                val approved = _state.value.items.map { it.copy(source = ItemSource.USER_EDITED) }
-                _state.value = _state.value.copy(items = approved, editingItemId = null)
+                // Approval accepts the items as-is. Rewriting `source` here
+                // would destroy provenance (OCR_ONLY vs CATALOG_MATCHED).
+                _state.value = _state.value.copy(editingItemId = null)
             }
             is ReviewAction.SaveToCollection -> saveToCollection(
                 action.collectionId,
@@ -121,7 +123,13 @@ class ReviewViewModel(
                 )
                 collectionRepository.saveCollection(collection)
                 _state.value = _state.value.copy(savedToCollection = true, isLoading = false)
+            } catch (e: CancellationException) {
+                // Cancellation is not a failure — let structured concurrency unwind.
+                throw e
             } catch (e: Exception) {
+                // No logging facility in the shared module yet — keep the root
+                // cause visible rather than silently mapping it away.
+                e.printStackTrace()
                 _state.value = _state.value.copy(error = ScanError.SaveFailed, isLoading = false)
             }
         }

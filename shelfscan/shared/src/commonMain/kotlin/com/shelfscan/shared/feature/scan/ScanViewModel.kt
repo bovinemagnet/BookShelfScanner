@@ -3,11 +3,14 @@ package com.shelfscan.shared.feature.scan
 import com.shelfscan.shared.core.model.*
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import com.shelfscan.shared.domain.scan.ScanFailure
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 sealed interface ScanAction {
     data class CaptureImage(val image: CapturedImage) : ScanAction
@@ -37,17 +40,23 @@ class ScanViewModel(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private fun processCapture(image: CapturedImage) {
         scope.launch {
             _state.value = ScanState(status = ScanStatus.PROCESSING, isLoading = true)
             try {
-                val sessionId = "session_${image.ref}"
+                // UUID rather than image ref: rescanning the same image must
+                // not overwrite the earlier session in the repository.
+                val sessionId = "session_${Uuid.random()}"
                 val session = processImage.execute(image, sessionId)
                 _state.value = ScanState(
                     status = ScanStatus.COMPLETE,
                     session = session,
                     isLoading = false
                 )
+            } catch (e: CancellationException) {
+                // Cancellation is not a failure — let structured concurrency unwind.
+                throw e
             } catch (e: Throwable) {
                 _state.value = ScanState(
                     status = ScanStatus.FAILED,
@@ -58,11 +67,12 @@ class ScanViewModel(
         }
     }
 
-    private fun Throwable.toScanError(): ScanError = when (this) {
-        is ScanFailure.ImageProcessing -> ScanError.ImageProcessingFailed
-        is ScanFailure.Ocr -> ScanError.OcrFailed
-        is ScanFailure.MetadataLookup -> ScanError.MetadataLookupFailed
-        is ScanFailure.Save -> ScanError.SaveFailed
-        else -> ScanError.OcrFailed
-    }
+}
+
+internal fun Throwable.toScanError(): ScanError = when (this) {
+    is ScanFailure.ImageProcessing -> ScanError.ImageProcessingFailed
+    is ScanFailure.Ocr -> ScanError.OcrFailed
+    is ScanFailure.MetadataLookup -> ScanError.MetadataLookupFailed
+    is ScanFailure.Save -> ScanError.SaveFailed
+    else -> ScanError.Unknown(message)
 }

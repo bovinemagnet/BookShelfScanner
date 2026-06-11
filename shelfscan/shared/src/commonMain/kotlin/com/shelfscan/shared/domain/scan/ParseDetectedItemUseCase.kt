@@ -25,7 +25,18 @@ class ParseDetectedItemUseCase {
     )
 
     fun execute(blocks: List<RecognizedTextBlock>): ParsedItem {
-        val candidates = blocks.filter { it.text.trim().isNotBlank() }
+        // Sort spatially (top-to-bottom, then left-to-right) so the order
+        // heuristics below don't depend on which OCR engine produced the
+        // blocks. Blocks without boxes keep their relative order at the end.
+        val candidates = blocks
+            .filter { it.text.trim().isNotBlank() }
+            .sortedWith(
+                compareBy(
+                    { it.boundingBox == null },
+                    { it.boundingBox?.top ?: 0f },
+                    { it.boundingBox?.left ?: 0f }
+                )
+            )
         val lines = candidates.map { it.text.trim() }
         if (candidates.isEmpty()) {
             return ParsedItem(null, null, emptyList(), confidence = 0.1)

@@ -91,9 +91,11 @@ fun ShelfScanApp(
     val reviewState by reviewViewModel.state.collectAsState()
 
     LaunchedEffect(scanState.status) {
-        if (scanState.status == ScanStatus.COMPLETE && scanState.session != null) {
-            reviewViewModel.onAction(ReviewAction.LoadSession(scanState.session!!))
-            currentScreen = Screen.REVIEW
+        if (scanState.status == ScanStatus.COMPLETE) {
+            scanState.session?.let { session ->
+                reviewViewModel.onAction(ReviewAction.LoadSession(session))
+                currentScreen = Screen.REVIEW
+            }
         }
     }
 
@@ -237,6 +239,7 @@ private fun scanFailureMessage(error: ScanError?): String = when (error) {
     ScanError.CameraUnavailable -> "The camera is unavailable on this device."
     ScanError.PermissionDenied -> "Camera permission is required to scan a shelf."
     ScanError.ImageTooBlurry -> "The photo was too blurry. Please retake it."
+    is ScanError.Unknown -> "Something went wrong. Please try again."
     null -> "Scan failed. Please try again."
 }
 

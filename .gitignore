@@ -36,3 +36,5 @@ replay_pid*
 
 # Android
 local.properties
+.mcp.json
+fable-improvements.md

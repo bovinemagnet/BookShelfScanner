@@ -44,7 +44,7 @@ class ExportCollectionUseCase {
     )
 
     private fun String.escapeCsv(): String {
-        return if (contains(',') || contains('"') || contains('\n')) {
+        return if (contains(',') || contains('"') || contains('\n') || contains('\r')) {
             "\"${replace("\"", "\"\"")}\""
         } else this
     }

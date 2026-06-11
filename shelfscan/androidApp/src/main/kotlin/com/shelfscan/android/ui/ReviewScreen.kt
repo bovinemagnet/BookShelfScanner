@@ -259,6 +259,7 @@ private fun reviewErrorMessage(error: ScanError): String = when (error) {
     ScanError.CameraUnavailable -> "Camera unavailable."
     ScanError.PermissionDenied -> "Camera permission required."
     ScanError.ImageTooBlurry -> "Photo was too blurry."
+    is ScanError.Unknown -> "Something went wrong. Please try again."
 }
 
 @Composable

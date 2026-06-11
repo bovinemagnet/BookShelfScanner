@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -67,12 +68,12 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
-    fun `returns empty list on non-success response`() = runTest {
+    fun `throws MetadataLookupException on non-success response`() = runTest {
         val service = serviceWith(status = HttpStatusCode.InternalServerError, body = "boom")
 
-        val matches = service.search(MediaType.BOOK, title = "anything", creatorName = null)
-
-        assertTrue(matches.isEmpty())
+        assertFailsWith<MetadataLookupException> {
+            service.search(MediaType.BOOK, title = "anything", creatorName = null)
+        }
     }
 
     @Test
@@ -131,25 +132,25 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
-    fun `returns empty list when HTTP call throws`() = runTest {
+    fun `throws MetadataLookupException when HTTP call throws`() = runTest {
         val engine = MockEngine { throw kotlinx.io.IOException("network down") }
         val client = HttpClient(engine) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
         val service = OpenLibraryMetadataLookupService(client)
 
-        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
-
-        assertTrue(matches.isEmpty())
+        assertFailsWith<MetadataLookupException> {
+            service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+        }
     }
 
     @Test
-    fun `returns empty list when response body is malformed JSON`() = runTest {
+    fun `throws MetadataLookupException when response body is malformed JSON`() = runTest {
         val service = serviceWith(body = "this is not json at all")
 
-        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
-
-        assertTrue(matches.isEmpty())
+        assertFailsWith<MetadataLookupException> {
+            service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+        }
     }
 
     @Test
@@ -219,7 +220,7 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
-    fun `slow request times out via HttpTimeout plugin and returns empty list`() = runTest {
+    fun `slow request times out via HttpTimeout plugin and throws MetadataLookupException`() = runTest {
         val engine = MockEngine {
             kotlinx.coroutines.delay(60_000) // far longer than the configured timeout
             respond(content = ByteReadChannel("{\"docs\":[]}"), status = HttpStatusCode.OK)
@@ -232,8 +233,8 @@ class OpenLibraryMetadataLookupServiceTest {
         }
         val service = OpenLibraryMetadataLookupService(client = client)
 
-        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
-
-        assertTrue(matches.isEmpty(), "expected empty list on timeout, got $matches")
+        assertFailsWith<MetadataLookupException> {
+            service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+        }
     }
 }

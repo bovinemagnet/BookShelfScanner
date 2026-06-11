@@ -109,4 +109,7 @@ sealed interface ScanError {
     data object OcrFailed : ScanError
     data object MetadataLookupFailed : ScanError
     data object SaveFailed : ScanError
+
+    /** Fallback for failures no other variant describes; `message` retains the cause. */
+    data class Unknown(val message: String? = null) : ScanError
 }

@@ -95,7 +95,7 @@ class ReviewWorkflowIntegrationTest {
     }
 
     @Test
-    fun `approve all then save sets all items to USER_EDITED`() {
+    fun `approve all then save preserves item provenance`() {
         loadSession(
             makeMediaItem(id = "item_0", source = ItemSource.OCR_ONLY),
             makeMediaItem(id = "item_1", source = ItemSource.CATALOG_MATCHED)
@@ -106,7 +106,8 @@ class ReviewWorkflowIntegrationTest {
         testScope.advanceUntilIdle()
 
         val saved = getSavedCollection("col_4")
-        assertTrue(saved.items.all { it.source == ItemSource.USER_EDITED })
+        assertEquals(ItemSource.OCR_ONLY, saved.items[0].source)
+        assertEquals(ItemSource.CATALOG_MATCHED, saved.items[1].source)
     }
 
     @Test

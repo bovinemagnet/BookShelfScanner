@@ -4,7 +4,9 @@ import com.shelfscan.shared.core.model.*
 import com.shelfscan.shared.platform.ImagePreprocessor
 import com.shelfscan.shared.platform.MetadataLookupService
 import com.shelfscan.shared.platform.OcrEngine
+import com.shelfscan.shared.platform.currentTimeMillis
 import com.shelfscan.shared.data.repository.ScanRepository
+import kotlinx.coroutines.CancellationException
 
 class ProcessCapturedImageUseCase(
     private val imagePreprocessor: ImagePreprocessor,
@@ -13,7 +15,7 @@ class ProcessCapturedImageUseCase(
     private val scanRepository: ScanRepository,
     private val parseItem: ParseDetectedItemUseCase = ParseDetectedItemUseCase(),
     private val scoreConfidence: ScoreConfidenceUseCase = ScoreConfidenceUseCase(),
-    private val clock: () -> Long = { 0L }
+    private val clock: () -> Long = { currentTimeMillis() }
 ) {
     suspend fun execute(image: CapturedImage, sessionId: String): ScanSession {
         val processed = runImagePhase { imagePreprocessor.normalizeForOcr(image) }
@@ -31,13 +33,22 @@ class ProcessCapturedImageUseCase(
             val ocrResult = runOcrPhase { ocrEngine.recognizeText(spineImage) }
             val parsed = parseItem.execute(ocrResult.blocks)
 
+            // One flaky lookup must not abort the whole shelf — the affected
+            // item degrades to OCR-only and the rest of the scan continues.
+            var metadataLookupFailed = false
             val catalogMatches = if (parsed.titleCandidate != null) {
-                runMetadataPhase {
+                try {
                     metadataLookupService.search(
                         mediaType = MediaType.BOOK,
                         title = parsed.titleCandidate,
                         creatorName = parsed.creatorCandidate
                     )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    e.printStackTrace()
+                    metadataLookupFailed = true
+                    emptyList()
                 }
             } else emptyList()
 
@@ -54,7 +65,11 @@ class ProcessCapturedImageUseCase(
                     catalogMatchConfidence = catalogConf,
                     reasons = buildList {
                         if (ocrConf < 0.5) add("low OCR confidence")
-                        if (catalogConf == 0.0) add("no catalog match")
+                        if (metadataLookupFailed) {
+                            add("metadata lookup failed")
+                        } else if (catalogConf == 0.0) {
+                            add("no catalog match")
+                        }
                         if (parsed.titleCandidate == null) add("no title extracted")
                     }
                 )
@@ -80,6 +95,9 @@ class ProcessCapturedImageUseCase(
             id = sessionId,
             createdAt = clock(),
             sourceImageRef = image.ref,
+            // STUB: real blur/brightness scoring is deferred to a platform
+            // implementation behind ImagePreprocessor (see docs/fable-improvements.md,
+            // Phase 4). Every scan currently reports acceptable quality.
             quality = ImageQualityAssessment(
                 blurScore = 1.0,
                 brightness = 0.8,
@@ -99,8 +117,12 @@ class ProcessCapturedImageUseCase(
         return if (rounded > 0) rounded else fallback
     }
 
+    // Cancellation must propagate untouched through every phase wrapper —
+    // wrapping it in a ScanFailure would break structured concurrency.
     private inline fun <T> runImagePhase(block: () -> T): T = try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: ScanFailure) {
         throw e
     } catch (e: Throwable) {
@@ -109,22 +131,18 @@ class ProcessCapturedImageUseCase(
 
     private inline fun <T> runOcrPhase(block: () -> T): T = try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: ScanFailure) {
         throw e
     } catch (e: Throwable) {
         throw ScanFailure.Ocr(e)
     }
 
-    private inline fun <T> runMetadataPhase(block: () -> T): T = try {
-        block()
-    } catch (e: ScanFailure) {
-        throw e
-    } catch (e: Throwable) {
-        throw ScanFailure.MetadataLookup(e)
-    }
-
     private inline fun <T> runSavePhase(block: () -> T): T = try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: ScanFailure) {
         throw e
     } catch (e: Throwable) {
