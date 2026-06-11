@@ -204,6 +204,37 @@ class OpenLibraryMetadataLookupServiceTest {
     }
 
     @Test
+    fun `transient server error succeeds when the client retries`() = runTest {
+        // Documents the HttpRequestRetry configuration the platform clients
+        // install: one retry absorbs a transient 5xx before the service
+        // would throw MetadataLookupException.
+        val goodBody = """{"numFound":1,"docs":[{"title":"Clean Code","key":"/works/OL1"}]}"""
+        val client = HttpClient(MockEngine) {
+            engine {
+                addHandler { respond(content = ByteReadChannel("boom"), status = HttpStatusCode.InternalServerError) }
+                addHandler {
+                    respond(
+                        content = ByteReadChannel(goodBody),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    )
+                }
+            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            install(io.ktor.client.plugins.HttpRequestRetry) {
+                retryOnServerErrors(maxRetries = 1)
+                constantDelay(millis = 10)
+            }
+        }
+        val service = OpenLibraryMetadataLookupService(client)
+
+        val matches = service.search(MediaType.BOOK, title = "Clean Code", creatorName = null)
+
+        assertEquals(1, matches.size)
+        assertEquals("Clean Code", matches[0].title)
+    }
+
+    @Test
     fun `request carries a User-Agent header`() = runTest {
         var capturedUa: String? = null
         val service = serviceWith(onRequest = {

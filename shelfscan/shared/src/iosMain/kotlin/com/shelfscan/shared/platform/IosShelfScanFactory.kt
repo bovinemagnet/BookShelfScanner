@@ -5,6 +5,7 @@ import com.shelfscan.shared.data.repository.DefaultScanRepository
 import com.shelfscan.shared.data.repository.ScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -48,6 +49,12 @@ object IosShelfScanFactory {
             install(HttpTimeout) {
                 requestTimeoutMillis = 5_000
                 connectTimeoutMillis = 5_000
+            }
+            // One retry absorbs transient network blips and 5xx responses
+            // before the lookup degrades the item to OCR-only.
+            install(HttpRequestRetry) {
+                retryOnExceptionOrServerErrors(maxRetries = 1)
+                exponentialDelay()
             }
         }
         return OpenLibraryMetadataLookupService(client = client)

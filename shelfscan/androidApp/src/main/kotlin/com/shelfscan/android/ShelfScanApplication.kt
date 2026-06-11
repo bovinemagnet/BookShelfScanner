@@ -13,6 +13,7 @@ import com.shelfscan.shared.data.repository.DefaultScanRepository
 import com.shelfscan.shared.domain.scan.ProcessCapturedImageUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -55,6 +56,12 @@ class ShelfScanApplication : Application() {
             install(HttpTimeout) {
                 requestTimeoutMillis = 5_000
                 connectTimeoutMillis = 5_000
+            }
+            // One retry absorbs transient network blips and 5xx responses
+            // before the lookup degrades the item to OCR-only.
+            install(HttpRequestRetry) {
+                retryOnExceptionOrServerErrors(maxRetries = 1)
+                exponentialDelay()
             }
         }
         // One ML Kit recogniser shared by both the OCR adapter and the
