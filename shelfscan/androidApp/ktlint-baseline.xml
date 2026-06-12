@@ -114,20 +114,21 @@
     </file>
     <file name="src/main/kotlin/com/shelfscan/android/image/OcrBasedSpineDetector.kt">
         <error line="4" column="1" source="standard:no-unused-imports" />
-        <error line="27" column="77" source="standard:trailing-comma-on-declaration-site" />
-        <error line="29" column="1" source="standard:no-empty-first-line-in-class-body" />
-        <error line="30" column="80" source="standard:function-expression-body" />
-        <error line="34" column="38" source="standard:trailing-comma-on-call-site" />
-        <error line="41" column="22" source="standard:multiline-expression-wrapping" />
-        <error line="62" column="43" source="standard:trailing-comma-on-call-site" />
-        <error line="75" column="30" source="standard:multiline-expression-wrapping" />
-        <error line="82" column="23" source="standard:chain-method-continuation" />
-        <error line="86" column="17" source="standard:chain-method-continuation" />
-        <error line="91" column="70" source="standard:function-expression-body" />
-        <error line="95" column="27" source="standard:multiline-expression-wrapping" />
-        <error line="96" column="21" source="standard:argument-list-wrapping" />
-        <error line="98" column="41" source="standard:trailing-comma-on-call-site" />
-        <error line="101" column="40" source="standard:trailing-comma-on-call-site" />
+        <error line="28" column="77" source="standard:trailing-comma-on-declaration-site" />
+        <error line="30" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="31" column="80" source="standard:function-expression-body" />
+        <error line="35" column="38" source="standard:trailing-comma-on-call-site" />
+        <error line="42" column="22" source="standard:multiline-expression-wrapping" />
+        <error line="66" column="31" source="standard:multiline-expression-wrapping" />
+        <error line="72" column="43" source="standard:trailing-comma-on-call-site" />
+        <error line="85" column="30" source="standard:multiline-expression-wrapping" />
+        <error line="92" column="23" source="standard:chain-method-continuation" />
+        <error line="96" column="17" source="standard:chain-method-continuation" />
+        <error line="101" column="70" source="standard:function-expression-body" />
+        <error line="105" column="27" source="standard:multiline-expression-wrapping" />
+        <error line="106" column="21" source="standard:argument-list-wrapping" />
+        <error line="108" column="41" source="standard:trailing-comma-on-call-site" />
+        <error line="111" column="40" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/kotlin/com/shelfscan/android/image/ScanImageCache.kt">
         <error line="14" column="22" source="standard:class-signature" />

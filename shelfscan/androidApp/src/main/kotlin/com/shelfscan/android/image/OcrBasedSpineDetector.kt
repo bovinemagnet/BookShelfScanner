@@ -7,6 +7,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognizer
 import com.shelfscan.android.ocr.MlKitOcrAdapter
 import com.shelfscan.android.ocr.toRecognizedTextBlocks
+import com.shelfscan.shared.core.geometry.clampToImage
 import com.shelfscan.shared.core.model.BoundingBox
 import com.shelfscan.shared.core.model.CapturedImage
 import com.shelfscan.shared.core.model.DetectedSpine
@@ -55,10 +56,19 @@ class OcrBasedSpineDetector(
             val cropRef = bitmapCropper.cropAndSave(image.ref, cluster.boundingBox, index.toString())
             val avgConfidence = cluster.blocks.map { it.confidence.toDouble() }.average()
 
+            // ML Kit text boxes can extend slightly outside the image; clamp the
+            // reported spine box to image bounds, matching the cropped region.
+            val clamped = cluster.boundingBox.clampToImage(image.widthPx, image.heightPx)
+
             DetectedSpine(
                 id = "spine_$index",
                 cropRef = cropRef,
-                boundingBox = cluster.boundingBox,
+                boundingBox = BoundingBox(
+                    clamped.left.toFloat(),
+                    clamped.top.toFloat(),
+                    clamped.right.toFloat(),
+                    clamped.bottom.toFloat(),
+                ),
                 confidence = avgConfidence
             )
         }
